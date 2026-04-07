@@ -379,4 +379,438 @@ body {
 .btn-solid:hover { background: var(--gold-bright); }
 
 /* ===== LEADERBOARD SCREEN ===== */
-#screen-leaderboard
+#screen-leaderboard { max-width: 680px; margin: 0 auto; padding: 40px 20px 80px; }
+.lb-hero { text-align: center; margin-bottom: 30px; }
+.lb-hero-icon { font-size: 44px; display: block; margin-bottom: 12px; }
+.lb-title { font-size: 24px; color: var(--gold); letter-spacing: 0.18em; margin-bottom: 6px; }
+.lb-sub { font-size: 11px; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }
+
+.lb-table-wrap {
+  background: var(--card); border: 1px solid var(--gold-border); border-radius: var(--radius);
+  overflow: hidden; margin-bottom: 20px; box-shadow: var(--shadow);
+}
+table.lb { width: 100%; border-collapse: collapse; }
+table.lb thead tr { background: var(--surface); }
+table.lb th { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--gold-border); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }
+table.lb td { padding: 11px 14px; font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text); }
+table.lb tbody tr:last-child td { border-bottom: none; }
+
+.lb-empty { text-align: center; padding: 56px 20px; color: var(--muted); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; }
+.lb-empty-icon { font-size: 36px; display: block; margin-bottom: 10px; opacity: 0.4; }
+
+.btn-back-wide {
+  display: block; width: 100%; padding: 13px; border-radius: 8px; border: 1px solid var(--gold-border);
+  background: transparent; color: var(--gold); font-size: 13px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  cursor: pointer; text-align: center; transition: all 0.2s; letter-spacing: 0.05em; margin-bottom: 12px;
+}
+.btn-back-wide:hover { background: var(--gold-dim); border-color: var(--gold); }
+
+/* Responsive */
+@media (max-width: 500px) {
+  .ruling-btns, .verdict-actions { grid-template-columns: 1fr; }
+  .score-n { font-size: 52px; }
+  table.lb th:nth-child(4), table.lb td:nth-child(4) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div id="screen-welcome" class="screen active">
+  <div class="emblem">
+    <span class="emblem-icon">⚖</span>
+    <h1 class="emblem-title">SOURCE COURT</h1>
+    <p class="emblem-sub">AP Research Edition</p>
+  </div>
+
+  <div class="welcome-card">
+    <h2>All Rise</h2>
+    <p class="welcome-intro">
+      You are the judge. Five sources stand before your court. Cross-examine each one,
+      then rule: <em>Admissible</em> or <em>Dismissed</em>.
+    </p>
+
+    <div class="instructions-box">
+      <h3>How to Play</h3>
+      <ol>
+        <li><strong>Review the Exhibit:</strong> Read the source metadata and excerpt carefully. Hints like "(Peer-Reviewed)" have been removed, so you must dig into the text!</li>
+        <li><strong>Cross-Examine:</strong> Answer the four evaluation questions. If you aren't certain, select "MAYBE".</li>
+        <li><strong>Rule:</strong> Decide if the source is <em>Admissible</em> (scholarly, credible) or <em>Dismissed</em> (biased, unreliable).</li>
+      </ol>
+    </div>
+
+    <div id="welcome-container">
+      <div class="form-group">
+        <label for="inp-name">Your Name</label>
+        <input id="inp-name" type="text" placeholder="Enter your name" maxlength="50">
+      </div>
+      <div class="form-group">
+        <label for="inp-topic">Your Research Question</label>
+        <input id="inp-topic" type="text" placeholder="What are you investigating?" maxlength="120">
+      </div>
+      <button type="button" class="btn-enter" onclick="handleCourtStart()">⚖&nbsp; Enter the Court</button>
+    </div>
+  </div>
+
+  <div class="welcome-footer">
+    <button type="button" class="btn-ghost" onclick="goLeaderboard()">🏛 Hall of Judges</button>
+  </div>
+</div>
+
+<div id="screen-source" class="screen"></div>
+<div id="screen-verdict" class="screen"></div>
+<div id="screen-leaderboard" class="screen"></div>
+
+<script>
+/* =======================================================
+   DATA
+   ======================================================= */
+const EXHIBITS = ['A','B','C','D','E'];
+
+const SETS = [
+  {
+    topic: 'Climate Change',
+    sources: [
+      {
+        title: 'Climate Change 2023: Synthesis Report',
+        author: 'Working Group I',
+        publication: 'Global Climate Synthesis Report',
+        date: '2023',
+        type: 'Report',
+        excerpt: '"Human-induced climate change, including more frequent and intense extreme weather events, has caused widespread adverse impacts and related losses and damages to nature and people, beyond natural climate variability. The observed increase in greenhouse gas concentrations since around 1750 is unequivocally caused by human activities."',
+        questions: [
+          { text: 'Is the author or organization an expert in this field?' },
+          { text: 'Is this source recent — published within the last 5–7 years?' },
+          { text: 'Is it peer-reviewed or from a highly reputable institution?' },
+          { text: 'Does the source show significant bias or a potential hidden agenda?' }
+        ],
+        ruling: 'admissible',
+        explanation: 'The IPCC synthesizes work from thousands of climate scientists worldwide. Expert authors, rigorous peer review, institutional accountability, and a 2023 date.'
+      },
+      {
+        title: 'Why Clean Coal Is Still America\'s Energy Backbone',
+        author: 'James R. Whitfield',
+        publication: 'American Energy Forum',
+        date: '2022',
+        type: 'Online Article',
+        excerpt: '"New scrubbing technologies have reduced coal plant emissions by over 90%, yet alarmist projections from environmental advocacy groups continually ignore these innovations. By transitioning to clean coal methodologies, we can maintain grid stability during extreme weather events where renewables typically fail."',
+        questions: [
+          { text: 'Is the author or organization an expert in this field?' },
+          { text: 'Is this source recent — published within the last 5–7 years?' },
+          { text: 'Is it peer-reviewed or from a highly reputable institution?' },
+          { text: 'Does the source show significant bias or a potential hidden agenda?' }
+        ],
+        ruling: 'dismissed',
+        explanation: 'A communications director for an energy lobbying site is not a scientific expert. The organization has a direct financial stake in coal\'s survival — a textbook conflict of interest.'
+      },
+      {
+        title: 'Accelerating Arctic Sea Ice Loss and Its Amplifying Feedback Effects',
+        author: 'Sarah Chen, Marcus Webb',
+        publication: 'Nature Climate Change',
+        date: '2021',
+        type: 'Academic Article',
+        excerpt: '"Satellite observations from 1979–2020 document a 13.1% per-decade decline in Arctic sea ice extent, with statistically significant acceleration after 2007. Albedo feedback loops, triggered by the reduction of highly reflective ice surfaces, amplify regional warming at twice the global mean rate."',
+        questions: [
+          { text: 'Is the author or organization an expert in this field?' },
+          { text: 'Is this source recent — published within the last 5–7 years?' },
+          { text: 'Is it peer-reviewed or from a highly reputable institution?' },
+          { text: 'Does the source show significant bias or a potential hidden agenda?' }
+        ],
+        ruling: 'admissible',
+        explanation: 'Nature Climate Change is one of the world\'s most rigorous peer-reviewed journals. Credentialed Oxford researchers, transparent methodology, and no financial conflicts.'
+      },
+      {
+        title: 'Climate Change — Wikipedia',
+        author: 'Multiple Contributors',
+        publication: 'Wikipedia',
+        date: 'Last edited 2024',
+        type: 'Encyclopedia',
+        excerpt: '"Climate change refers to long-term shifts in global temperatures and weather patterns. Since the mid-20th century, human activities — primarily burning fossil fuels — have been the main driver of climate change. This process releases greenhouse gases, such as carbon dioxide and methane, which trap heat in the Earth\'s atmosphere."',
+        questions: [
+          { text: 'Is the author or organization an expert in this field?' },
+          { text: 'Is this source recent — published within the last 5–7 years?' },
+          { text: 'Is it peer-reviewed or from a highly reputable institution?' },
+          { text: 'Does the source show significant bias or a potential hidden agenda?' }
+        ],
+        ruling: 'dismissed',
+        explanation: 'Wikipedia has no named, credentialed authors and undergoes no peer review. It\'s valuable for orientation — not for evidence. AP Research requires traceable, accountable scholarship.'
+      },
+      {
+        title: 'I Sailed the Northwest Passage. The Ice Is Gone.',
+        author: 'Tyler Cross',
+        publication: 'The New York Times',
+        date: '2023',
+        type: 'Article',
+        excerpt: '"I’ve made three Arctic crossings in my lifetime, and the transformation is staggering. The thick, multi-year ice that once killed early explorers is simply gone, replaced by open water and slush. No scientist with their complex data models needs to tell me what I saw with my own eyes from the deck of my boat."',
+        questions: [
+          { text: 'Is the author or organization an expert in this field?' },
+          { text: 'Is this source recent — published within the last 5–7 years?' },
+          { text: 'Is it peer-reviewed or from a highly reputable institution?' },
+          { text: 'Does the source show significant bias or a potential hidden agenda?' }
+        ],
+        ruling: 'dismissed',
+        explanation: 'Compelling first-person observation — but anecdote is not data. The author has no scientific credentials, the column underwent no peer review, and activist framing signals a one-sided perspective.'
+      }
+    ]
+  }
+];
+
+/* =======================================================
+   STATE
+   ======================================================= */
+var AppState = {
+  name: '',
+  topic: '',
+  setIdx: 0,
+  srcIdx: 0,
+  qAnswers: [],
+  rulings: []
+};
+
+/* =======================================================
+   SCREEN ROUTING
+   ======================================================= */
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + id);
+  if(el) el.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+/* =======================================================
+   WELCOME
+   ======================================================= */
+function handleCourtStart() {
+  const name  = document.getElementById('inp-name').value.trim();
+  const topic = document.getElementById('inp-topic').value.trim();
+  
+  if (!name || !topic) {
+    alert("Please enter both your name and your research question to proceed.");
+    return;
+  }
+
+  AppState.name  = name;
+  AppState.topic = topic;
+  AppState.setIdx = 0; // Keeping it simple to 1 set for stability
+  AppState.srcIdx   = 0;
+  AppState.rulings  = [];
+  AppState.qAnswers = Array.from({ length: 5 }, () => [null, null, null, null]);
+
+  renderSource(0);
+  showScreen('source');
+}
+
+function goLeaderboard() {
+  renderLeaderboard();
+  showScreen('leaderboard');
+}
+
+/* =======================================================
+   SOURCE SCREEN
+   ======================================================= */
+function renderSource(idx) {
+  const set    = SETS[AppState.setIdx];
+  const src    = set.sources[idx];
+  const ex     = EXHIBITS[idx];
+  const total  = set.sources.length;
+  const ans    = AppState.qAnswers[idx];
+  const done   = ans.every(a => a !== null);
+  const pct    = Math.round(((idx + 1) / total) * 100);
+
+  const qsHTML = src.questions.map((q, qi) => {
+    const a = ans[qi];
+    const yc = a === true    ? 'yn-btn sel-yes'   : 'yn-btn';
+    const nc = a === false   ? 'yn-btn sel-no'    : 'yn-btn';
+    const mc = a === 'maybe' ? 'yn-btn sel-maybe' : 'yn-btn';
+    return `
+      <div class="q-row">
+        <div class="q-text">${q.text}</div>
+        <div class="yn-row">
+          <button type="button" class="${yc}" onclick="answerQ(${idx},${qi},true)">YES</button>
+          <button type="button" class="${nc}" onclick="answerQ(${idx},${qi},false)">NO</button>
+          <button type="button" class="${mc}" onclick="answerQ(${idx},${qi},'maybe')">MAYBE</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  const dis  = done ? '' : 'disabled';
+  const hint = done ? '' : `<div class="ruling-hint">Answer all four questions to unlock your ruling</div>`;
+
+  document.getElementById('screen-source').innerHTML = `
+    <div class="topbar">
+      <span class="topbar-logo">⚖ SOURCE COURT</span>
+      <div class="topbar-right">
+        <span class="topbar-progress">Case ${idx + 1} of ${total} &middot; ${set.topic}</span>
+      </div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div class="source-body">
+      <div class="case-badge-row">
+        <span class="exhibit-tag">Exhibit ${ex}</span>
+        <span class="type-badge">${src.type}</span>
+      </div>
+      <div class="case-file">
+        <div class="case-file-top">
+          <h2 class="source-title">${src.title}</h2>
+          <div class="meta-grid">
+            <span class="meta-k">Author</span><span class="meta-v">${src.author}</span>
+            <span class="meta-k">Published In</span><span class="meta-v">${src.publication}</span>
+            <span class="meta-k">Date</span><span class="meta-v">${src.date}</span>
+          </div>
+        </div>
+        <div class="excerpt-area">
+          <span class="excerpt-kicker">Excerpt</span>
+          <p class="excerpt-quote">${src.excerpt}</p>
+        </div>
+      </div>
+      <div class="cross-exam">
+        <div class="cross-exam-title">Cross-Examination</div>
+        ${qsHTML}
+      </div>
+      <div class="ruling-zone">
+        <div class="ruling-label">Your Ruling</div>
+        <div class="ruling-btns">
+          <button type="button" class="btn-rule btn-admit" ${dis} onclick="submitRuling('admissible')">✓ Admissible</button>
+          <button type="button" class="btn-rule btn-dismiss" ${dis} onclick="submitRuling('dismissed')">✗ Dismissed</button>
+        </div>
+        ${hint}
+      </div>
+    </div>`;
+}
+
+function answerQ(srcIdx, qIdx, val) {
+  AppState.qAnswers[srcIdx][qIdx] = val;
+  renderSource(srcIdx);
+}
+
+function submitRuling(ruling) {
+  AppState.rulings.push(ruling);
+  const next = AppState.srcIdx + 1;
+  if (next < SETS[AppState.setIdx].sources.length) {
+    AppState.srcIdx = next;
+    renderSource(next);
+    window.scrollTo(0, 0);
+  } else {
+    const score = calcScore();
+    saveScoreSafe(AppState.name, AppState.topic, score, SETS[AppState.setIdx].topic);
+    renderVerdict(score);
+    showScreen('verdict');
+  }
+}
+
+function calcScore() {
+  return SETS[AppState.setIdx].sources.reduce(
+    (acc, src, i) => acc + (AppState.rulings[i] === src.ruling ? 1 : 0), 0
+  );
+}
+
+/* =======================================================
+   VERDICT SCREEN
+   ======================================================= */
+function renderVerdict(score) {
+  const set   = SETS[AppState.setIdx];
+  const total = set.sources.length;
+  
+  const cards = set.sources.map((src, i) => {
+    const correct     = AppState.rulings[i] === src.ruling;
+    const yourRuling  = AppState.rulings[i];
+    const yourChip    = yourRuling === 'admissible' ? 'chip chip-your-a' : 'chip chip-your-d';
+    const expChip     = src.ruling  === 'admissible' ? 'chip chip-exp-a'  : 'chip chip-exp-d';
+    return `
+      <div class="vcard ${correct ? 'vright' : 'vwrong'}">
+        <div class="vstamp ${correct ? 'st-right' : 'st-wrong'}">${correct ? '✓' : '✗'}</div>
+        <div class="vcard-body">
+          <div class="vcard-title">${src.title}</div>
+          <div class="vcard-chips">
+            <span class="${yourChip}">You: ${yourRuling}</span>
+            <span class="${expChip}">Expert: ${src.ruling}</span>
+          </div>
+          <div class="vcard-explanation">${src.explanation}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('screen-verdict').innerHTML = `
+    <div class="verdict-hero">
+      <span class="verdict-hero-icon">⚖</span>
+      <h1>COURT ADJOURNED</h1>
+      <div class="score-wrap">
+        <span class="score-n">${score}</span><span class="score-d">/${total}</span>
+      </div>
+    </div>
+    <div class="verdict-divider">Case Summary</div>
+    <div id="verdict-cards">${cards}</div>
+    <div class="verdict-actions">
+      <button type="button" class="btn-outline" onclick="playAgain()">Try Another Case</button>
+      <button type="button" class="btn-solid" onclick="goLeaderboard()">Hall of Judges</button>
+    </div>`;
+}
+
+function playAgain() {
+  const saved = AppState.name;
+  AppState.srcIdx = 0;
+  AppState.rulings = [];
+  AppState.qAnswers = [];
+  document.getElementById('inp-name').value = saved;
+  document.getElementById('inp-topic').value = '';
+  showScreen('welcome');
+}
+
+/* =======================================================
+   LEADERBOARD (Ultra-Safe Storage for Local Files)
+   ======================================================= */
+const LB_KEY = 'sc_v1_lb';
+
+function saveScoreSafe(name, topic, score, setTopic) {
+  try {
+    let lb = [];
+    if (window.localStorage) {
+      const existing = localStorage.getItem(LB_KEY);
+      if (existing) lb = JSON.parse(existing);
+    }
+    lb.push({ name, topic, score, setTopic, date: new Date().toLocaleDateString() });
+    lb.sort((a, b) => b.score - a.score || 0);
+    if (window.localStorage) {
+      localStorage.setItem(LB_KEY, JSON.stringify(lb.slice(0, 50)));
+    }
+  } catch(e) {
+    console.warn("Local storage disabled by browser security.");
+  }
+}
+
+function loadLBSafe() {
+  try {
+    if (window.localStorage) {
+      return JSON.parse(localStorage.getItem(LB_KEY)) || [];
+    }
+  } catch(e) {
+    console.warn("Local storage disabled by browser security.");
+  }
+  return [];
+}
+
+function renderLeaderboard() {
+  const entries = loadLBSafe();
+  let body = '';
+
+  if (entries.length === 0) {
+    body = `<tr><td colspan="4"><div class="lb-empty"><span class="lb-empty-icon">⚖</span><p>No rulings on record yet.</p></div></td></tr>`;
+  } else {
+    body = entries.map((e, i) => `<tr>
+      <td>#${i + 1}</td><td>${e.name}</td><td><strong>${e.score}/5</strong></td><td>${e.topic}</td>
+    </tr>`).join('');
+  }
+
+  document.getElementById('screen-leaderboard').innerHTML = `
+    <div class="lb-hero"><span class="lb-hero-icon">🏛</span><h1 class="lb-title">HALL OF JUDGES</h1></div>
+    <div class="lb-table-wrap">
+      <table class="lb">
+        <thead><tr><th>Rank</th><th>Judge</th><th>Score</th><th>Topic</th></tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>
+    <button type="button" class="btn-back-wide" onclick="showScreen('welcome')">← Return to Court</button>
+  `;
+}
+</script>
+</body>
+</html>
