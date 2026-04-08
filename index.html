@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My App Hub</title>
+<style>
+  body {
+    background-color: #07091a;
+    color: #e4e6f2;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 20px;
+    margin: 0;
+  }
+  h1 { 
+    color: #c9a84c; 
+    letter-spacing: 2px; 
+    text-transform: uppercase; 
+    margin-bottom: 10px;
+  }
+  p { 
+    color: #6b7492; 
+    margin-bottom: 40px; 
+    text-align: center; 
+    max-width: 500px; 
+    line-height: 1.5;
+  }
+  .app-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 450px;
+  }
+  .app-card {
+    background: #131828;
+    border: 1px solid rgba(201,168,76,0.35);
+    border-radius: 12px;
+    padding: 24px;
+    text-decoration: none;
+    color: #e4e6f2;
+    text-align: center;
+    font-weight: bold;
+    font-size: 18px;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  }
+  .app-card:hover {
+    background: #1a2040;
+    border-color: #c9a84c;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  }
+  .app-card span {
+    display: block;
+    font-size: 13px;
+    color: #6b7492;
+    margin-top: 8px;
+    font-weight: normal;
+  }
+</style>
+</head>
+<body>
+
+  <h1>Project Directory</h1>
+  <p>Welcome to the main hub. Select an application below to launch it.</p>
+
+  <div class="app-grid">
+    
+    <a href="SourceCourt.html" class="app-card">
+      ⚖️ Source Court
+      <span>AP Research Edition</span>
+    </a>
+
+    <a href="RhetoricRadar.html" class="app-card">
+      📁 Rhetoric Radar
+      <span>Description of what this app does</span>
+    </a>
+
+  </div>
+
+</body>
+</html>
