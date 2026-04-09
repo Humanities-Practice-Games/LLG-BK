@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L.O.R. Detective: Procedural Investigations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Space+Mono:wght@400;700&family=Special+Elite&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        detective: {
+                            bg: '#0f1115', panel: '#1a1d24', gold: '#d4af37',
+                            red: '#991b1b', green: '#166534', paper: '#e5ddd0',
+                            ink: '#1a1a1a', folder: '#b59a6d'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['Space Mono', 'monospace'],
+                        typewriter: ['Special Elite', 'cursive'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0f1115; background-image: radial-gradient(#222 1px, transparent 1px); background-size: 20px 20px; }
+        
+        .corkboard {
+            background-color: #3e2723;
+            background-image: url('data:image/svg+xml,%3Csvg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"%3E%3Cpath d="M20 20.5V18H0v-2h20v-2H0v-2h20v-2H0V8h20V6H0V4h20V2H0V0h22v20h2V0h2v20h2V0h2v20h2V0h2v20h2V0h2v20h2v2H20v-1.5zM0 20h2v20H0V20zm4 0h2v20H4V20zm4 0h2v20H8V20zm4 0h2v20h-2V20zm4 0h2v20h-2V20zm4 4h20v2H20v-2zm0 4h20v2H20v-2zm0 4h20v2H20v-2zm0 4h20v2H20v-2z" fill="%232e1814" fill-opacity="0.4" fill-rule="evenodd"/%3E%3C/svg%3E');
+            box-shadow: inset 0 0 80px rgba(0,0,0,0.9);
+        }
+
+        .index-card {
+            background-color: #e5ddd0; color: #1a1a1a; box-shadow: 2px 5px 15px rgba(0,0,0,0.4);
+            transition: all 0.2s ease; position: relative;
+        }
+        
+        .clickable-card { cursor: pointer; }
+        .clickable-card:hover { transform: translateY(-4px) scale(1.01); box-shadow: 5px 10px 20px rgba(0,0,0,0.5); z-index: 10; }
+        .clickable-card.selected { border: 3px solid #d4af37; transform: scale(1.02); box-shadow: 0 0 25px rgba(212, 175, 55, 0.3); z-index: 5; }
+        
+        .suspect-polaroid {
+            background: white; padding: 10px 10px 30px 10px; box-shadow: 2px 4px 10px rgba(0,0,0,0.5);
+            transition: all 0.3s ease; filter: sepia(0.3) grayscale(0.2); cursor: pointer;
+        }
+        .suspect-polaroid:hover { filter: sepia(0) grayscale(0); transform: scale(1.05) rotate(2deg); z-index: 20;}
+        
+        .pin {
+            width: 14px; height: 14px; background: #991b1b; border-radius: 50%;
+            position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+            box-shadow: inset -3px -3px 5px rgba(0,0,0,0.5), 3px 3px 5px rgba(0,0,0,0.4);
+        }
+
+        .string-v {
+            width: 3px; height: 35px; background-color: #d4af37; margin: 0 auto;
+            box-shadow: 2px 2px 3px rgba(0,0,0,0.6); transition: all 0.3s ease;
+        }
+
+        .string-v.broken {
+            background-color: transparent; border-left: 3px dashed #ff4444;
+            animation: snap 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        
+        .node-error { animation: shake-red 0.5s ease-in-out; border: 3px solid #ff4444 !important; }
+        .stamp-animate { animation: stampIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        @keyframes snap { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+        @keyframes shake-red { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px) rotate(-1deg); } 75% { transform: translateX(5px) rotate(1deg); } }
+        @keyframes stampIn { 0% { opacity: 0; transform: translate(-50%, -50%) rotate(-15deg) scale(3); } 50% { opacity: 1; transform: translate(-50%, -50%) rotate(-15deg) scale(0.9); } 100% { opacity: 1; transform: translate(-50%, -50%) rotate(-15deg) scale(1); } }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f1115; }
+        ::-webkit-scrollbar-thumb { background: #d4af37; border-radius: 4px; }
+        
+        textarea { resize: none; }
+    </style>
+</head>
+<body class="text-gray-200 h-screen flex flex-col font-sans overflow-hidden selection:bg-detective-gold selection:text-black">
+
+    <!-- START SCREEN -->
+    <div id="setup-screen" class="absolute inset-0 bg-detective-bg z-[100] flex flex-col justify-center items-center p-6">
+        <div class="bg-detective-panel border border-detective-gold/30 p-8 rounded-xl shadow-2xl max-w-md w-full text-center">
+            <div class="text-6xl mb-4">🕵️‍♂️</div>
+            <h1 class="text-3xl font-typewriter text-detective-paper mb-2 tracking-wider">L.O.R. Detective</h1>
+            <p class="text-gray-400 font-mono text-xs mb-8 uppercase tracking-widest border-b border-gray-700 pb-4">Instant Access Engine</p>
+            
+            <div class="space-y-6 text-left">
+                <div>
+                    <label class="block text-detective-gold font-mono text-sm mb-2">Investigator Name:</label>
+                    <input type="text" id="player-name" class="w-full bg-black border border-gray-600 rounded p-3 text-white font-sans focus:border-detective-gold outline-none transition-colors" placeholder="e.g. Detective Smith" autocomplete="off">
+                    <p id="name-error" class="text-red-500 font-mono text-[10px] uppercase mt-1 hidden tracking-wider">Access Denied: Agent Name Required.</p>
+                </div>
+                
+                <div>
+                    <label class="block text-detective-gold font-mono text-sm mb-2">Difficulty Mode:</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <button id="btn-easy" onclick="setMode('easy')" class="border-2 border-detective-gold bg-detective-gold/20 text-white py-3 rounded font-mono font-bold transition">EASY (Select)</button>
+                        <button id="btn-hard" onclick="setMode('hard')" class="border-2 border-gray-700 bg-black text-gray-500 py-3 rounded font-mono font-bold transition hover:border-gray-500">HARD (Write)</button>
+                    </div>
+                    <p id="mode-desc" class="text-xs text-gray-400 mt-2 font-sans">Easy: Evaluate pre-written arguments to find logical fallacies.</p>
+                </div>
+                
+                <button onclick="startGame()" class="w-full bg-detective-gold hover:bg-yellow-500 text-black font-bold font-mono py-4 rounded shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all transform hover:scale-105 mt-4">
+                    INITIALIZE SYSTEM
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="bg-detective-panel border-b border-detective-gold/20 p-3 shadow-xl z-20 flex justify-between items-center relative">
+        <div class="flex items-center gap-3 sm:gap-4">
+            <div class="text-3xl sm:text-4xl">🕵️‍♂️</div>
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold font-typewriter text-detective-paper tracking-wide">L.O.R. Detective <span id="header-mode" class="text-[10px] sm:text-xs text-black bg-detective-gold px-1.5 py-0.5 rounded ml-2 font-mono align-middle"></span></h1>
+                <p class="text-[10px] sm:text-xs text-gray-400 font-mono uppercase mt-1">Agent: <span id="display-name" class="text-white"></span></p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 sm:gap-4">
+            <button onclick="toggleSuspectBoard()" class="relative bg-detective-folder text-black font-bold font-mono px-3 py-2 text-xs sm:text-sm rounded shadow hover:bg-yellow-600 transition flex items-center gap-2">
+                <span class="hidden sm:inline">📂 SUSPECT FILES</span><span class="sm:hidden">📂 FILES</span>
+                <span id="clue-notification" class="hidden absolute -top-2 -right-2 bg-red-600 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full animate-bounce">!</span>
+            </button>
+            <div class="font-mono text-xs sm:text-sm bg-black px-3 py-2 rounded border border-gray-700">
+                Clues: <span id="clues-count" class="text-detective-gold font-bold">0/3</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN GAME AREA -->
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 h-full overflow-hidden">
+        
+        <!-- LEFT: INPUT/SELECTION AREA -->
+        <section class="lg:col-span-5 xl:col-span-4 bg-detective-panel p-4 lg:p-6 flex flex-col h-full overflow-y-auto border-r border-gray-800 z-10 shadow-2xl relative">
+            
+            <div class="mb-4 bg-black/40 p-4 rounded-lg border border-gray-700">
+                <h2 id="case-title" class="text-detective-gold font-bold text-lg mb-2 font-mono uppercase border-b border-gray-600 pb-2">Loading...</h2>
+                <p class="text-xs text-gray-400 leading-relaxed font-mono" id="panel-instructions">Build the logic bridge to recover the clue.</p>
+            </div>
+
+            <!-- EASY MODE UI: TABS & CARDS -->
+            <div id="ui-easy" class="flex-1 flex flex-col hidden">
+                <div class="flex gap-1 mb-4 bg-gray-900 p-1 rounded-lg shrink-0">
+                    <button id="tab-claim" onclick="switchTab('claim')" class="flex-1 py-2 font-mono text-xs font-bold bg-detective-gold text-black rounded transition">1. CLAIM</button>
+                    <button id="tab-evidence" onclick="switchTab('evidence')" class="flex-1 py-2 font-mono text-xs font-bold text-gray-500 rounded transition hover:bg-gray-800" disabled>2. EVIDENCE</button>
+                    <button id="tab-commentary" onclick="switchTab('commentary')" class="flex-1 py-2 font-mono text-xs font-bold text-gray-500 rounded transition hover:bg-gray-800" disabled>3. COMMENTARY</button>
+                </div>
+                <div id="clues-container" class="flex-1 space-y-4 pb-24 overflow-y-auto pr-2"></div>
+            </div>
+
+            <!-- HARD MODE UI: TEXTAREAS -->
+            <div id="ui-hard" class="flex-1 flex flex-col space-y-4 pb-24 overflow-y-auto pr-2 hidden">
+                <div>
+                    <label class="block text-[10px] text-blue-400 font-mono uppercase mb-1 font-bold">Your Thesis</label>
+                    <textarea id="hard-thesis" oninput="updateHardBoard('thesis')" rows="2" class="w-full bg-black border border-gray-600 rounded p-3 text-sm text-white focus:border-blue-400 outline-none" placeholder="State your overarching argument..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-[10px] text-gray-400 font-mono uppercase mb-1 font-bold">Claim 1</label>
+                    <textarea id="hard-claim" oninput="updateHardBoard('claim')" rows="2" class="w-full bg-black border border-gray-600 rounded p-3 text-sm text-white focus:border-detective-paper outline-none" placeholder="State a claim that supports your thesis..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-[10px] text-gray-400 font-mono uppercase mb-1 font-bold">Evidence</label>
+                    <textarea id="hard-evidence" oninput="updateHardBoard('evidence')" rows="2" class="w-full bg-black border border-gray-600 rounded p-3 text-sm text-white focus:border-detective-paper outline-none" placeholder="Provide specific evidence..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-[10px] text-detective-gold font-mono uppercase mb-1 font-bold">Commentary</label>
+                    <textarea id="hard-commentary" oninput="updateHardBoard('commentary')" rows="3" class="w-full bg-black border border-gray-600 rounded p-3 text-sm text-white focus:border-detective-gold outline-none" placeholder="Analyze how the evidence proves the claim..."></textarea>
+                </div>
+            </div>
+        </section>
+
+        <!-- RIGHT: CORKBOARD -->
+        <section class="lg:col-span-7 xl:col-span-8 corkboard p-4 lg:p-8 h-full overflow-y-auto relative flex flex-col items-center">
+            
+            <div id="solved-stamp" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-[-15deg] scale-150 sm:scale-200 text-detective-green border-4 border-detective-green p-4 font-typewriter text-4xl sm:text-5xl font-bold rounded opacity-0 pointer-events-none z-30">BRIDGE SECURED</div>
+
+            <!-- Overlay for Victory / Clue Reveal -->
+            <div id="next-case-overlay" class="absolute inset-0 bg-black/80 backdrop-blur-sm z-[60] hidden flex-col justify-center items-center p-4">
+                <div class="bg-detective-paper border-4 border-detective-gold p-6 sm:p-8 rounded shadow-2xl text-center max-w-lg w-full relative">
+                    <div class="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-detective-gold text-black px-4 py-1 text-xs sm:text-sm font-mono font-bold border-2 border-black">EVIDENCE RECOVERED</div>
+                    <h2 class="text-xl sm:text-2xl font-typewriter text-black mb-4 mt-2">Excellent Deduction, Detective.</h2>
+                    <p class="text-gray-800 font-sans mb-4 text-xs sm:text-sm border-b border-gray-400 pb-4">Forensics discovered a clue left behind by the Master Fallacist:</p>
+                    <div class="bg-yellow-100/80 p-4 rounded shadow-inner mb-6 text-left transform rotate-1 border border-yellow-300">
+                        <p id="clue-reveal-text" class="font-typewriter text-base sm:text-lg text-blue-900 font-bold leading-relaxed"></p>
+                    </div>
+                    <button id="proceed-btn" onclick="proceedGame()" class="bg-black hover:bg-gray-800 text-white font-bold font-mono py-3 px-8 rounded shadow-lg transition-all w-full border border-gray-600">
+                        LOG CLUE & CONTINUE
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal for Feedback (Easy & Hard) -->
+            <div id="feedback-modal" class="absolute inset-0 bg-black/80 z-[60] hidden flex justify-center items-center p-4 backdrop-blur-md">
+                <div class="bg-detective-paper border-4 border-detective-red p-6 max-w-xl w-full rounded shadow-2xl" id="feedback-content">
+                    <h3 class="font-typewriter font-bold text-xl sm:text-2xl text-detective-red tracking-tight mb-1" id="feedback-title">Structural Collapse!</h3>
+                    <p class="text-[10px] sm:text-xs font-mono text-detective-red uppercase tracking-widest mb-4 border-b border-red-300 pb-2">Status: <span id="flaw-type" class="font-bold">UNKNOWN</span></p>
+                    <div id="feedback-text-container" class="text-detective-ink font-sans mb-6 text-sm sm:text-base leading-relaxed border-l-4 border-detective-red pl-4 max-h-[40vh] overflow-y-auto space-y-3">
+                        <p id="feedback-text"></p>
+                    </div>
+                    <button onclick="closeFeedback()" class="w-full bg-detective-ink hover:bg-black text-white font-mono py-3 rounded">Acknowledge & Adjust</button>
+                </div>
+            </div>
+
+            <!-- Suspect / Meta-Mystery Modal -->
+            <div id="suspect-modal" class="absolute inset-0 bg-detective-bg/95 z-[70] hidden flex-col items-center p-4 sm:p-8 lg:p-12 overflow-y-auto">
+                <div class="w-full max-w-5xl flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
+                    <h2 class="text-2xl sm:text-3xl font-typewriter text-detective-paper tracking-wider">The Suspect Board</h2>
+                    <button onclick="toggleSuspectBoard()" class="text-gray-400 font-mono hover:text-white text-sm sm:text-xl transition">✖ CLOSE</button>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 w-full">
+                    <!-- Clues Area -->
+                    <div class="lg:col-span-1 bg-detective-panel p-6 rounded border border-gray-700 shadow-xl h-fit">
+                        <h3 class="text-detective-gold font-mono mb-4 text-lg sm:text-xl border-b border-gray-600 pb-2 flex items-center gap-2"><span>📌</span> Recovered Clues</h3>
+                        <ul id="clue-list-ui" class="space-y-4">
+                            <li class="text-gray-600 font-typewriter text-sm italic">Solve cases to uncover clues...</li>
+                        </ul>
+                    </div>
+
+                    <!-- Suspects Area -->
+                    <div class="lg:col-span-2">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6" id="suspects-grid"></div>
+                    </div>
+                </div>
+
+                <div id="final-deduction-area" class="mt-8 w-full max-w-5xl hidden flex-col items-center bg-red-900/10 border border-red-900/50 p-6 sm:p-8 rounded">
+                    <h2 class="text-xl sm:text-2xl font-typewriter text-detective-gold mb-2">The Picture is Clear.</h2>
+                    <p class="text-gray-400 font-mono mb-6 text-center text-sm">Analyze the clues against the suspects' MOs. Who is the culprit?</p>
+                    <div class="grid grid-cols-2 sm:flex gap-3 sm:gap-4 w-full justify-center" id="arrest-buttons"></div>
+                </div>
+            </div>
+
+            <!-- Conclusion Screen -->
+            <div id="conclusion-screen" class="absolute inset-0 bg-detective-bg z-[100] hidden flex-col justify-center items-center p-6 overflow-y-auto">
+                <div id="conclusion-box" class="bg-detective-panel border p-8 sm:p-12 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] max-w-2xl w-full text-center my-auto">
+                    <div id="conclusion-icon" class="text-7xl sm:text-8xl mb-6"></div>
+                    <h2 id="conclusion-title" class="text-3xl sm:text-4xl font-typewriter mb-4"></h2>
+                    <p id="conclusion-desc" class="text-gray-300 font-sans mb-8 text-sm sm:text-base leading-relaxed"></p>
+                    <button onclick="resetToSetup()" class="bg-detective-gold hover:bg-yellow-500 text-black font-bold font-mono py-3 px-10 rounded transition-all transform hover:scale-105">
+                        BEGIN NEW INVESTIGATION
+                    </button>
+                </div>
+            </div>
+
+            <!-- THE BUILD BOARD -->
+            <div class="w-full max-w-xl bg-black/40 backdrop-blur-sm p-2 rounded mb-6 text-center border border-gray-800">
+                <h2 class="text-detective-paper font-typewriter text-lg sm:text-xl tracking-widest">Logic Assembly Board</h2>
+            </div>
+
+            <!-- Prompt -->
+            <div class="index-card w-full max-w-xl p-4 sm:p-5 mb-2 cursor-default" style="transform: rotate(0.5deg);">
+                <div class="pin"></div>
+                <span class="text-[10px] font-mono font-bold text-detective-red uppercase block mb-1 border-b border-gray-300 pb-1">Context: The Prompt</span>
+                <p id="board-prompt" class="text-xs sm:text-sm mt-2 font-typewriter text-gray-800 leading-relaxed"></p>
+            </div>
+
+            <div class="string-v"></div>
+
+            <!-- Thesis -->
+            <div class="index-card w-full max-w-xl p-4 sm:p-5 mb-2 cursor-default bg-blue-50/90" style="transform: rotate(-0.5deg);">
+                <div class="pin" style="background: #1e3a8a;"></div>
+                <span class="text-[10px] font-mono font-bold text-blue-900 uppercase block mb-1 border-b border-blue-200 pb-1">Target: The Thesis</span>
+                <p id="board-thesis" class="text-sm sm:text-base mt-2 font-bold font-sans text-gray-900"></p>
+            </div>
+
+            <div id="string-thesis-claim" class="string-v relative"></div>
+
+            <!-- Flow Nodes -->
+            <div id="board-claim" class="index-card w-full max-w-xl p-4 sm:p-5 mb-2 min-h-[80px] flex items-center justify-center border-2 border-dashed border-gray-500 bg-detective-paper/30 transition-all">
+                <span class="font-typewriter text-gray-600 text-sm sm:text-base">❓ Awaiting Claim...</span>
+            </div>
+
+            <div id="string-claim-evidence" class="string-v relative"></div>
+
+            <div id="board-evidence" class="index-card w-full max-w-xl p-4 sm:p-5 mb-2 min-h-[80px] flex items-center justify-center border-2 border-dashed border-gray-500 bg-detective-paper/30 transition-all">
+                <span class="font-typewriter text-gray-600 text-sm sm:text-base">❓ Awaiting Evidence...</span>
+            </div>
+
+            <div id="string-evidence-commentary" class="string-v relative"></div>
+
+            <div id="board-commentary" class="index-card w-full max-w-xl p-4 sm:p-5 mb-16 min-h-[80px] flex items-center justify-center border-2 border-dashed border-gray-500 bg-detective-paper/30 transition-all">
+                <span class="font-typewriter text-gray-600 text-sm sm:text-base">❓ Awaiting Commentary...</span>
+            </div>
+
+            <!-- Action Button -->
+            <div class="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-30">
+                <button id="analyze-btn" onclick="triggerAnalysis()" class="bg-detective-gold text-black font-mono font-bold text-sm sm:text-lg py-3 px-6 sm:py-4 sm:px-8 rounded shadow-[0_5px_15px_rgba(0,0,0,0.8)] border border-yellow-200 hover:bg-yellow-400 hover:scale-105 transition-all opacity-50 cursor-not-allowed flex items-center gap-2" disabled>
+                    ANALYZE BRIDGE
+                </button>
+            </div>
+
+        </section>
+    </main>
+
+    <script>
+        // --- PROCEDURAL DATABASES ---
+        
+        const allSuspects = [
+            { id: 1, name: "Prof. Slippery Slope", img: "⛷️", desc: "Assumes the smallest action leads to massive, catastrophic extremes.", innocentClue: "The thief bypassed the locks methodically, showing no signs of extreme or exaggerated logic.", guiltyClue: "The thief left a note claiming stealing this rubric will inevitably lead to the destruction of the entire school system." },
+            { id: 2, name: "Baron Von Bandwagon", img: "🚂", desc: "Believes something is right only if a large crowd or popular opinion agrees.", innocentClue: "Witnesses confirm the thief acted completely alone, ignoring the crowd.", guiltyClue: "The thief left behind a survey showing that 95% of people agree stealing the rubric was a cool idea." },
+            { id: 3, name: "Madame Summary", img: "🦜", desc: "Never analyzes deeply. Simply repeats facts and evidence using different words.", innocentClue: "The forensics show deep, original analysis of the security system to break in.", guiltyClue: "The thief left behind a perfectly written paraphrase of the vault's security manual, but no original tools." },
+            { id: 4, name: "Dr. Red Herring", img: "🐟", desc: "A master of distraction. Completely changes the subject away from the main issue.", innocentClue: "The thief stayed entirely focused on the main vault door, never straying.", guiltyClue: "The thief bypassed the vault by setting off the fire alarm in a completely different building." },
+            { id: 5, name: "Count Ad Hominem", img: "🧛", desc: "Attacks the person making the argument rather than the argument itself.", innocentClue: "The thief did not target any security personnel directly, only the locking mechanism.", guiltyClue: "The thief ignored the vault entirely and instead left a note insulting the security guard's intelligence." },
+            { id: 6, name: "Duke Strawman", img: "🌾", desc: "Oversimplifies or misrepresents an opposing argument to easily defeat it.", innocentClue: "The thief tackled the complex security system directly without taking shortcuts.", guiltyClue: "The thief left behind a crude, simplified dummy of the security system that they easily smashed." },
+            { id: 7, name: "Lady False Dilemma", img: "🎭", desc: "Presents only two extreme options, ignoring any middle ground or nuance.", innocentClue: "The thief used a highly nuanced, multi-step approach to crack the code.", guiltyClue: "The thief left a note saying 'You either leave the vault unlocked, or I blow it up. There is no other way.'" },
+            { id: 8, name: "Sir Hasty Generalization", img: "🐇", desc: "Rushes to a broad conclusion based on a tiny, inadequate sample size.", innocentClue: "The thief spent hours collecting massive amounts of data before attempting the break-in.", guiltyClue: "The thief successfully picked one minor lock and loudly declared that all locks in the building were now useless." }
+        ];
+
+        const allCases = [
+            {
+                title: "The Token Economy", prompt: "Evaluate the use of gamification in educational environments.", thesis: "While gamification temporarily boosts participation, it ultimately degrades genuine intellectual curiosity by replacing intrinsic motivation with superficial reward systems.",
+                claim: { correct: { text: "When learning is tied to external point systems, students begin to view acquiring knowledge as a transactional chore.", type: "Correct" }, distractors: [ { text: "Gamification creates hostile environments where students relentlessly bully each other over rankings.", type: "Extreme Leap", feedback: "Too extreme. The thesis argues it degrades 'intrinsic motivation', not that it creates physical hostility." }, { text: "Teachers spend too much time setting up these digital systems instead of grading.", type: "Scope Shift", feedback: "Off-topic! Focus on the student's intellectual curiosity, not teacher workload." } ] },
+                evidence: { correct: { text: "A study showed students in gamified curriculums engaged in 40% less unassigned reading than control groups.", type: "Correct" }, distractors: [ { text: "Since smartboards were introduced, student test scores have remained stagnant.", type: "Irrelevant Detail", feedback: "Smartboards are technology, not 'gamification' (points/rewards)." }, { text: "I used an app with points to learn Spanish and stopped using it when my streak broke.", type: "Anecdotal", feedback: "Personal anecdotes are generally too narrow to serve as primary evidence for an AP-level structural argument." } ] },
+                commentary: { correct: { text: "Conditioning students to expect quantifiable validation strips away the natural satisfaction of discovery.", type: "Correct" }, distractors: [ { text: "This study clearly proves that students in gamified classes do 40% less unassigned reading.", type: "The Summary Trap", feedback: "You just summarized the evidence. Commentary must explain *WHY* the evidence proves the claim." }, { text: "Therefore, we must ban all games before children forget how to read entirely.", type: "The Moralizing Leap", feedback: "You jumped to a massive, extreme policy conclusion unsupported by the evidence." } ] }
+            },
+            {
+                title: "The Disposable Wardrobe", prompt: "Analyze the societal impact of the fast fashion industry.", thesis: "Although fast fashion democratizes trends, it ultimately devalues human labor and perpetuates a cycle of artificial obsolescence.",
+                claim: { correct: { text: "The industry's relentless demand for rapid production forces corporations to exploit vulnerable labor markets.", type: "Correct" }, distractors: [ { text: "Fast fashion is primarily responsible for microplastics in the water supply.", type: "Scope Shift", feedback: "Environmental impact is off-thesis. Focus on 'human labor'." }, { text: "Consumers are greedy and only care about looking good on social media.", type: "Ad Hominem", feedback: "You are attacking the consumer rather than analyzing the systemic economic model." } ] },
+                evidence: { correct: { text: "A labor audit revealed garments were primarily manufactured in facilities paying less than 20% of a living wage.", type: "Correct" }, distractors: [ { text: "A fast-fashion brand was sued for stealing designs from an Instagram artist.", type: "Irrelevant Detail", feedback: "IP theft does not prove the *exploitation of factory labor*." }, { text: "Clothing prices have dropped by 30% over the last two decades.", type: "Missing the Mark", feedback: "Proves clothes are cheaper, but misses the link to *labor exploitation*." } ] },
+                commentary: { correct: { text: "This severe depression of wages demonstrates that affordability is an extraction of value from marginalized workers.", type: "Correct" }, distractors: [ { text: "The audit shows that workers are barely making any money making clothes.", type: "The Summary Trap", feedback: "You simply restated the facts without analyzing *how* it proves the claim." }, { text: "This proves capitalism is evil and must be completely dismantled.", type: "The Extreme Leap", feedback: "Too broad. You jumped from a specific industry critique to destroying the global economy." } ] }
+            },
+            {
+                title: "The Echo Chamber", prompt: "Evaluate the impact of algorithm-driven news feeds on civic discourse.", thesis: "Algorithmic news feeds erode democracy by isolating users in ideological echo chambers that prevent productive debate.",
+                claim: { correct: { text: "Algorithms are engineered to prioritize content that confirms a user's pre-existing biases to maximize engagement.", type: "Correct" }, distractors: [ { text: "Social media makes it easy for foreign bots to post fake news.", type: "Scope Shift", feedback: "Off-topic! Focus on the *isolation of echo chambers*, not fake news generation." }, { text: "People today are simply less educated and more gullible.", type: "Generalization", feedback: "Unsupported sweeping generalization about intelligence." } ] },
+                evidence: { correct: { text: "An MIT study found algorithmic feed users are 70% less likely to encounter opposing political viewpoints.", type: "Correct" }, distractors: [ { text: "A tech CEO admitted their goal is to keep users scrolling.", type: "Missing Mechanism", feedback: "Proves engagement, but fails to prove *ideological bias confirmation*." }, { text: "A poll showed 60% of Americans feel anxious reading the news.", type: "Correlation Error", feedback: "Anxiety is separate from *ideological isolation*." } ] },
+                commentary: { correct: { text: "This lack of exposure to diverse perspectives eliminates the intellectual friction required for a healthy democracy.", type: "Correct" }, distractors: [ { text: "The study proves people see 70% fewer differing opinions.", type: "The Summary Trap", feedback: "You just reworded the study. Explain *why* fewer opinions is bad." }, { text: "Therefore, people who use algorithms are completely brainwashed.", type: "Absolutist Leap", feedback: "Using absolutist language like 'brainwashed' weakens academic credibility." } ] }
+            },
+            {
+                title: "The Cashless Shift", prompt: "Argue the implications of transitioning to a fully cashless society.", thesis: "While a cashless society offers unmatched transactional efficiency, it inherently disenfranchises marginalized populations and surrenders total financial privacy to corporate entities.",
+                claim: { correct: { text: "Eliminating physical currency creates immediate barriers for unbanked individuals who rely on cash for daily survival.", type: "Correct" }, distractors: [ { text: "Cash is dirty and carries a lot of germs that make people sick.", type: "Trivialization", feedback: "Too trivial for an AP argument. Focus on systemic issues like privacy or disenfranchisement." }, { text: "Credit card companies charge exorbitant interest rates to teenagers.", type: "Scope Shift", feedback: "Credit card debt is an issue, but your thesis is specifically about *privacy* and *marginalized unbanked populations*." } ] },
+                evidence: { correct: { text: "FDIC data indicates that 4.5% of US households are completely unbanked, representing millions who cannot participate in digital economies.", type: "Correct" }, distractors: [ { text: "I lost my credit card once and couldn't buy lunch.", type: "Anecdotal", feedback: "Too personal and narrow to prove widespread disenfranchisement." }, { text: "Cryptocurrency values fluctuate wildly from day to day.", type: "Irrelevant Topic", feedback: "Crypto is digital, but the prompt is about the *removal of physical cash* from standard society." } ] },
+                commentary: { correct: { text: "By mandating digital transactions, society effectively criminalizes poverty, ensuring that those without digital access are entirely locked out of commerce.", type: "Correct" }, distractors: [ { text: "This shows that 4.5% of people don't have banks, which is bad.", type: "The Summary Trap", feedback: "Summary trap! You need to connect the 4.5% statistic to the concept of *disenfranchisement*." }, { text: "We should force banks to give everyone a free iPhone so they can pay for things.", type: "Illogical Policy", feedback: "This proposes a bizarre solution rather than analyzing the implications of the evidence." } ] }
+            },
+            {
+                title: "The Artificial Artist", prompt: "Evaluate the role of AI image generators in the future of the creative arts.", thesis: "AI image generation, while an impressive tool for rapid prototyping, fundamentally threatens artistic integrity by relying on the uncompensated scraping of human creativity.",
+                claim: { correct: { text: "The algorithms powering these generators cannot create original thought; they mathematically collage existing human artworks.", type: "Correct" }, distractors: [ { text: "AI art looks weird because it always messes up human hands.", type: "Trivial Focus", feedback: "This is a technical glitch, not a structural argument about *artistic integrity* or *uncompensated scraping*." }, { text: "Artists have always copied each other throughout history.", type: "False Equivalence", feedback: "Human inspiration is fundamentally different from a machine scraping millions of images without consent." } ] },
+                evidence: { correct: { text: "A class-action lawsuit revealed that major AI art models were trained on billions of copyrighted images scraped from the web without creator permission.", type: "Correct" }, distractors: [ { text: "An AI-generated painting won first place at a state fair art competition.", type: "Contradictory Evidence", feedback: "This proves AI is *successful*, which works against your thesis about it threatening integrity." }, { text: "Photoshop has had digital filters for over two decades.", type: "Missing the Mark", feedback: "Filters alter images, but they do not *scrape human creativity* to generate new images from scratch." } ] },
+                commentary: { correct: { text: "Because the machine's output is entirely dependent on the uncredited labor of human artists, it functions not as a creator, but as an engine of creative plagiarism.", type: "Correct" }, distractors: [ { text: "The lawsuit shows that they took billions of pictures without asking.", type: "The Summary Trap", feedback: "You merely restated the lawsuit. Explain *why* taking the pictures threatens artistic integrity." }, { text: "Therefore, anyone who uses AI art should be thrown in jail for theft.", type: "The Extreme Leap", feedback: "An extreme, highly emotional conclusion that derails the academic tone of the essay." } ] }
+            }
+        ];
+
+        // --- GAME STATE ---
+        let state = {
+            playerName: "", mode: "easy",
+            mystery: null, cluesFound: 0,
+            currentCase: null, usedCases: [],
+            easyTab: 'claim', easySelections: { claim: null, evidence: null, commentary: null },
+            easyShuffled: { claim: [], evidence: [], commentary: [] }
+        };
+
+        // --- UI TOGGLES ---
+        function setMode(mode) {
+            state.mode = mode;
+            document.getElementById('btn-easy').className = mode === 'easy' ? "border-2 border-detective-gold bg-detective-gold/20 text-white py-3 rounded font-mono font-bold transition" : "border-2 border-gray-700 bg-black text-gray-500 py-3 rounded font-mono font-bold transition hover:border-gray-500";
+            document.getElementById('btn-hard').className = mode === 'hard' ? "border-2 border-detective-gold bg-detective-gold/20 text-white py-3 rounded font-mono font-bold transition" : "border-2 border-gray-700 bg-black text-gray-500 py-3 rounded font-mono font-bold transition hover:border-gray-500";
+            document.getElementById('mode-desc').innerText = mode === 'easy' ? "Easy: Evaluate pre-written arguments to find logical fallacies." : "Hard: Act as the architect. Write your own thesis, claims, evidence, and commentary for simulated AP grading (Score 85+ required).";
+        }
+
+        // --- PROCEDURAL GENERATION FUNCTIONS ---
+        function generateProceduralMystery() {
+            // Pick 4 random suspects
+            let shuffledSuspects = [...allSuspects].sort(() => 0.5 - Math.random());
+            let chosenSuspects = shuffledSuspects.slice(0, 4);
+            
+            // Pick 1 culprit
+            let culpritIndex = Math.floor(Math.random() * 4);
+            
+            // Generate Clues
+            let clues = [];
+            let innocentIndices = [0, 1, 2, 3].filter(i => i !== culpritIndex);
+            
+            // Clue 1 & 2 clear innocents, Clue 3 points to guilty
+            clues.push(chosenSuspects[innocentIndices[0]].innocentClue);
+            clues.push(chosenSuspects[innocentIndices[1]].innocentClue);
+            clues.push(chosenSuspects[culpritIndex].guiltyClue);
+            
+            // Shuffle clues so they don't know the last one is the guilty one
+            clues.sort(() => 0.5 - Math.random());
+
+            state.mystery = {
+                suspects: chosenSuspects,
+                culpritIndex: culpritIndex,
+                clues: clues
+            };
+            
+            renderSuspects();
+        }
+
+        function loadProceduralCase() {
+            // Find an unused case
+            let availableCases = allCases.filter(c => !state.usedCases.includes(c.title));
+            if(availableCases.length === 0) {
+                state.usedCases = []; // reset if we run out
+                availableCases = allCases;
+            }
+            
+            // Pick random case
+            let selectedCase = availableCases[Math.floor(Math.random() * availableCases.length)];
+            state.usedCases.push(selectedCase.title);
+            state.currentCase = selectedCase;
+
+            // Clean UI
+            document.getElementById('next-case-overlay').classList.add('hidden');
+            document.getElementById('next-case-overlay').style.display = 'none';
+            document.getElementById('solved-stamp').classList.remove('stamp-animate');
+            ['claim', 'evidence', 'commentary'].forEach(s => {
+                if(s!=='claim') document.getElementById(`string-${s === 'evidence' ? 'claim-evidence' : 'evidence-commentary'}`).classList.remove('broken');
+                const el = document.getElementById(`board-${s}`);
+                el.className = "index-card w-full max-w-xl p-4 sm:p-5 mb-2 min-h-[80px] flex items-center justify-center border-2 border-dashed border-gray-500 bg-detective-paper/30 transition-all";
+                el.innerHTML = `<span class="font-typewriter text-gray-600 text-sm">❓ Awaiting ${s.toUpperCase()}...</span>`;
+            });
+            document.getElementById('string-thesis-claim').classList.remove('broken');
+            
+            const btn = document.getElementById('analyze-btn');
+            btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
+            btn.innerHTML = `ANALYZE BRIDGE`;
+
+            if (state.mode === 'easy') {
+                state.easySelections = { claim: null, evidence: null, commentary: null };
+                
+                document.getElementById('board-prompt').innerText = state.currentCase.prompt;
+                document.getElementById('board-thesis').innerText = state.currentCase.thesis;
+                
+                shuffleEasyOptions('claim'); shuffleEasyOptions('evidence'); shuffleEasyOptions('commentary');
+                document.getElementById('tab-evidence').disabled = true; document.getElementById('tab-commentary').disabled = true;
+                switchTab('claim');
+
+            } else {
+                ['thesis', 'claim', 'evidence', 'commentary'].forEach(id => {
+                    document.getElementById(`hard-${id}`).value = '';
+                    if(id !== 'thesis') document.getElementById(`board-${id}`).innerHTML = `<span class="font-typewriter text-gray-600 text-sm">❓ Awaiting ${id.toUpperCase()}...</span>`;
+                });
+                document.getElementById('board-thesis').innerText = '';
+                document.getElementById('board-prompt').innerText = state.currentCase.prompt;
+                checkHardReady();
+            }
+
+            document.getElementById('case-title').innerText = `Case File: ${state.currentCase.title}`;
+        }
+
+        // --- HEURISTIC GRADER (HARD MODE) ---
+        function simulateGrading(thesis, claim, evidence, commentary) {
+            let score = 100;
+            let general = "Solid logic bridge structure.";
+            let tF = "Adequate.", cF = "Adequate.", eF = "Adequate.", coF = "Adequate.";
+            let isFailed = false;
+
+            // Thesis Check
+            if (thesis.length < 30) { score -= 15; tF = "Thesis is too brief. Needs a clear, arguable position."; isFailed = true; }
+            else if (thesis.toLowerCase().startsWith("i think")) { score -= 5; tF = "Avoid 'I think' in academic writing. State the argument directly."; }
+            else { tF = "Clear and arguable position established."; }
+
+            // Claim Check
+            if (claim.length < 20) { score -= 10; cF = "Claim is underdeveloped. Must explicitly support the thesis."; isFailed = true; }
+            else { cF = "Claim provides a solid sub-argument."; }
+
+            // Evidence Check
+            const evLower = evidence.toLowerCase();
+            if (evidence.length < 30) { score -= 15; eF = "Evidence is too vague. Provide specific data, quotes, or historical facts."; isFailed = true; }
+            else if (!evLower.includes("study") && !evLower.includes("percent") && !evLower.includes("%") && !evLower.includes("example") && !evLower.includes("shows") && !evLower.includes("according") && !evidence.includes('"')) {
+                score -= 10; eF = "Evidence lacks specificity. Try including specific examples, studies, or quotes.";
+            } else { eF = "Specific evidence provided."; }
+
+            // Commentary Check
+            const coLower = commentary.toLowerCase();
+            if (commentary.length <= evidence.length) { score -= 15; coF = "Commentary is too short. Your analysis must outweigh your evidence."; isFailed = true; }
+            else if (!coLower.includes("because") && !coLower.includes("demonstrates") && !coLower.includes("shows") && !coLower.includes("proves") && !coLower.includes("illustrates") && !coLower.includes("therefore")) {
+                score -= 10; coF = "Commentary lacks analytical verbs (e.g., demonstrates, proves, illustrates). You might be summarizing."; isFailed = true;
+            } else { coF = "Strong analysis connecting evidence back to the claim."; }
+
+            if (score < 85) general = "The bridge lacks structural integrity. Review the feedback and expand your analysis.";
+
+            return { score, feedback: general, thesisFeedback: tF, claimFeedback: cF, evidenceFeedback: eF, commentaryFeedback: coF };
+        }
+
+        // --- GAME LOOP ---
+        function startGame() {
+            const nameInput = document.getElementById('player-name').value.trim();
+            const errorLabel = document.getElementById('name-error');
+            
+            // Validation Check without using alert()
+            if(!nameInput) { 
+                errorLabel.classList.remove('hidden');
+                document.getElementById('player-name').classList.add('border-red-500');
+                return; 
+            }
+            
+            errorLabel.classList.add('hidden');
+            document.getElementById('player-name').classList.remove('border-red-500');
+            state.playerName = nameInput;
+            
+            // PROPERLY HIDE SETUP SCREEN
+            document.getElementById('setup-screen').classList.add('hidden');
+            document.getElementById('setup-screen').style.display = 'none';
+
+            document.getElementById('display-name').innerText = state.playerName;
+            document.getElementById('header-mode').innerText = state.mode.toUpperCase();
+            
+            if (state.mode === 'easy') {
+                document.getElementById('ui-easy').classList.remove('hidden');
+                document.getElementById('ui-hard').classList.add('hidden');
+                document.getElementById('panel-instructions').innerText = "Select options to build the logic bridge. Avoid fallacies.";
+            } else {
+                document.getElementById('ui-easy').classList.add('hidden');
+                document.getElementById('ui-hard').classList.remove('hidden');
+                document.getElementById('panel-instructions').innerText = "Write your argument. Must score 85/100 from the Grader.";
+            }
+
+            generateProceduralMystery();
+            loadProceduralCase();
+        }
+
+        // --- EASY MODE LOGIC ---
+        function shuffleEasyOptions(step) {
+            let opts = [ state.currentCase[step].correct, ...state.currentCase[step].distractors ];
+            for (let i = opts.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [opts[i], opts[j]] = [opts[j], opts[i]]; }
+            state.easyShuffled[step] = opts;
+        }
+
+        function switchTab(tabId) {
+            state.easyTab = tabId;
+            ['claim', 'evidence', 'commentary'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tabId) btn.className = "flex-1 py-2 font-mono text-xs font-bold bg-detective-gold text-black rounded transition border-b-4 border-yellow-600 shadow-md";
+                else btn.className = "flex-1 py-2 font-mono text-xs font-bold bg-gray-800 text-gray-400 rounded transition hover:bg-gray-700 border-b-4 border-transparent opacity-80 hover:opacity-100";
+            });
+            renderEasyClues();
+        }
+
+        function renderEasyClues() {
+            const container = document.getElementById('clues-container');
+            container.innerHTML = '';
+            state.easyShuffled[state.easyTab].forEach((opt, index) => {
+                const isSelected = state.easySelections[state.easyTab] === index;
+                const card = document.createElement('div');
+                card.className = `index-card p-4 rounded border-2 clickable-card ${isSelected ? 'selected border-detective-gold' : 'border-transparent'}`;
+                card.style.transform = isSelected ? 'scale(1.02)' : `rotate(${(Math.random() * 1.5 - 0.75).toFixed(2)}deg)`;
+                card.innerHTML = `
+                    <div class="pin" style="background-color: ${isSelected ? '#166534' : '#991b1b'}"></div>
+                    <p class="font-sans text-sm font-medium leading-relaxed text-gray-800 mt-2">${opt.text}</p>
+                `;
+                card.onclick = () => selectEasyOption(index);
+                container.appendChild(card);
+            });
+        }
+
+        function selectEasyOption(index) {
+            state.easySelections[state.easyTab] = index;
+            const opt = state.easyShuffled[state.easyTab][index];
+            updateBoardUI(state.easyTab, opt.text);
+
+            if (state.easyTab === 'claim') { document.getElementById('tab-evidence').disabled = false; switchTab('evidence'); }
+            else if (state.easyTab === 'evidence') { document.getElementById('tab-commentary').disabled = false; switchTab('commentary'); }
+            else { renderEasyClues(); }
+
+            if (state.easySelections.claim !== null && state.easySelections.evidence !== null && state.easySelections.commentary !== null) {
+                const btn = document.getElementById('analyze-btn');
+                btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); btn.classList.add('animate-pulse');
+            }
+        }
+
+        // --- HARD MODE LOGIC ---
+        function updateHardBoard(step) {
+            const val = document.getElementById(`hard-${step}`).value.trim();
+            if(step === 'thesis') {
+                document.getElementById('board-thesis').innerText = val;
+            } else {
+                updateBoardUI(step, val, val === '');
+            }
+            checkHardReady();
+        }
+
+        function checkHardReady() {
+            if(state.mode !== 'hard') return;
+            const t = document.getElementById('hard-thesis').value.trim();
+            const c = document.getElementById('hard-claim').value.trim();
+            const e = document.getElementById('hard-evidence').value.trim();
+            const co = document.getElementById('hard-commentary').value.trim();
+            
+            const btn = document.getElementById('analyze-btn');
+            if(t && c && e && co) {
+                btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); btn.classList.add('animate-pulse');
+            } else {
+                btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); btn.classList.remove('animate-pulse');
+            }
+        }
+
+        // --- SHARED UI UPDATE ---
+        function updateBoardUI(step, text, isEmpty = false) {
+            const boardNode = document.getElementById(`board-${step}`);
+            if(isEmpty) {
+                boardNode.className = "index-card w-full max-w-xl p-4 sm:p-5 mb-2 min-h-[80px] flex items-center justify-center border-2 border-dashed border-gray-500 bg-detective-paper/30 transition-all";
+                boardNode.innerHTML = `<span class="font-typewriter text-gray-600 text-sm">❓ Awaiting ${step.toUpperCase()}...</span>`;
+            } else {
+                boardNode.className = "index-card w-full max-w-xl p-4 sm:p-5 mb-2 bg-detective-paper shadow-xl";
+                boardNode.style.transform = `rotate(${(Math.random() * 2 - 1).toFixed(1)}deg)`;
+                boardNode.innerHTML = `
+                    <div class="pin" style="background-color: #166534;"></div>
+                    <span class="text-[10px] font-mono font-bold text-detective-ink uppercase border-b border-gray-400 block pb-1 mb-2">Selected ${step}</span>
+                    <p class="font-sans text-sm font-bold text-gray-900">${text}</p>
+                `;
+            }
+        }
+
+        // --- ANALYSIS LOGIC ---
+        function triggerAnalysis() {
+            const btn = document.getElementById('analyze-btn');
+            btn.classList.remove('animate-pulse');
+            btn.innerHTML = `ANALYZING...`; btn.disabled = true;
+
+            document.querySelectorAll('.string-v').forEach(el => el.classList.remove('broken'));
+            document.querySelectorAll('.index-card').forEach(el => el.classList.remove('node-error'));
+
+            // Artificial short delay for dramatic effect
+            setTimeout(() => {
+                if (state.mode === 'easy') {
+                    const cOpt = state.easyShuffled.claim[state.easySelections.claim];
+                    const eOpt = state.easyShuffled.evidence[state.easySelections.evidence];
+                    const coOpt = state.easyShuffled.commentary[state.easySelections.commentary];
+
+                    if (cOpt.type !== "Correct") showFeedback('thesis-claim', 'board-claim', cOpt.type, cOpt.feedback);
+                    else if (eOpt.type !== "Correct") showFeedback('claim-evidence', 'board-evidence', eOpt.type, eOpt.feedback);
+                    else if (coOpt.type !== "Correct") showFeedback('evidence-commentary', 'board-commentary', coOpt.type, coOpt.feedback);
+                    else handleVictory(btn);
+                } else {
+                    // HARD MODE HEURISTIC GRADING
+                    const t = document.getElementById('hard-thesis').value;
+                    const c = document.getElementById('hard-claim').value;
+                    const e = document.getElementById('hard-evidence').value;
+                    const co = document.getElementById('hard-commentary').value;
+                    
+                    const grade = simulateGrading(t, c, e, co);
+                        
+                    if(grade.score >= 85) {
+                        handleVictory(btn, `Score: ${grade.score}/100 - ${grade.feedback}`);
+                    } else {
+                        const feedbackHtml = `
+                            <p class="font-bold text-lg mb-2">Score: ${grade.score}/100. (85 required to pass).</p>
+                            <p class="mb-2"><strong>General:</strong> ${grade.feedback}</p>
+                            <ul class="list-disc pl-4 space-y-1 text-sm">
+                                <li class="${grade.thesisFeedback.includes('Adequate') ? 'text-green-800' : 'text-red-800'}"><strong>Thesis:</strong> ${grade.thesisFeedback}</li>
+                                <li class="${grade.claimFeedback.includes('Adequate') ? 'text-green-800' : 'text-red-800'}"><strong>Claim:</strong> ${grade.claimFeedback}</li>
+                                <li class="${grade.evidenceFeedback.includes('Specific') ? 'text-green-800' : 'text-red-800'}"><strong>Evidence:</strong> ${grade.evidenceFeedback}</li>
+                                <li class="${grade.commentaryFeedback.includes('Strong') ? 'text-green-800' : 'text-red-800'}"><strong>Commentary:</strong> ${grade.commentaryFeedback}</li>
+                            </ul>
+                        `;
+                        // Determine visual break point
+                        let breakStr = 'thesis-claim', breakNode = 'board-claim';
+                        if(!grade.evidenceFeedback.includes('Specific') || grade.score < 60) { breakStr = 'claim-evidence'; breakNode = 'board-evidence'; }
+                        if(!grade.commentaryFeedback.includes('Strong') || grade.score < 75) { breakStr = 'evidence-commentary'; breakNode = 'board-commentary'; }
+                        
+                        showFeedback(breakStr, breakNode, "Insufficient AP Score", feedbackHtml, true);
+                    }
+                }
+            }, 600); // 600ms instant analysis
+        }
+
+        function showFeedback(stringId, boardId, flawType, feedbackText, isHtml = false) {
+            document.getElementById(`string-${stringId}`).classList.add('broken');
+            document.getElementById(boardId).classList.add('node-error');
+            document.getElementById('flaw-type').innerText = flawType;
+            if(isHtml) document.getElementById('feedback-text-container').innerHTML = feedbackText;
+            else document.getElementById('feedback-text-container').innerHTML = `<p>${feedbackText}</p>`;
+            
+            document.getElementById('feedback-modal').classList.remove('hidden');
+            const btn = document.getElementById('analyze-btn');
+            btn.innerHTML = `ANALYZE BRIDGE`; btn.disabled = false;
+        }
+
+        function closeFeedback() { document.getElementById('feedback-modal').classList.add('hidden'); }
+
+        // --- PROGRESSION ---
+        function handleVictory(btn, extraMsg = null) {
+            document.getElementById('solved-stamp').classList.add('stamp-animate');
+            btn.innerHTML = `BRIDGE SECURED`;
+            btn.classList.replace('bg-detective-gold', 'bg-detective-green');
+            btn.classList.replace('text-black', 'text-white');
+            
+            setTimeout(() => {
+                const clueText = state.mystery.clues[state.cluesFound];
+                document.getElementById('clue-reveal-text').innerText = `"${clueText}"`;
+                if(extraMsg) document.getElementById('clue-reveal-text').innerHTML += `<br><br><span class="text-sm text-green-700 font-sans">Simulated Grader: ${extraMsg}</span>`;
+                
+                document.getElementById('next-case-overlay').classList.remove('hidden');
+                document.getElementById('next-case-overlay').style.display = 'flex';
+                
+                const li = document.createElement('li');
+                li.className = "bg-black/50 p-3 rounded font-typewriter text-detective-paper text-sm border-l-4 border-detective-gold";
+                li.innerText = clueText;
+                if(state.cluesFound === 0) document.getElementById('clue-list-ui').innerHTML = '';
+                document.getElementById('clue-list-ui').appendChild(li);
+                
+                state.cluesFound++;
+                document.getElementById('clues-count').innerText = `${state.cluesFound}/3`;
+                document.getElementById('clue-notification').classList.remove('hidden');
+
+                if(state.cluesFound === 3) {
+                    document.getElementById('proceed-btn').innerText = "CONFRONT THE CULPRIT ➡️";
+                    document.getElementById('proceed-btn').classList.replace('bg-black', 'bg-detective-red');
+                    document.getElementById('final-deduction-area').classList.remove('hidden');
+                    document.getElementById('final-deduction-area').classList.add('flex');
+                }
+            }, 1000);
+        }
+
+        function proceedGame() {
+            document.getElementById('next-case-overlay').classList.add('hidden');
+            document.getElementById('next-case-overlay').style.display = 'none';
+            if (state.cluesFound === 3) toggleSuspectBoard();
+            else loadProceduralCase();
+        }
+
+        // --- SUSPECT BOARD & FINALE ---
+        function renderSuspects() {
+            const grid = document.getElementById('suspects-grid');
+            const btnArea = document.getElementById('arrest-buttons');
+            grid.innerHTML = ''; btnArea.innerHTML = '';
+
+            state.mystery.suspects.forEach((s, idx) => {
+                grid.innerHTML += `
+                    <div class="suspect-polaroid" onclick="toggleSuspectBoard(); makeArrest(${idx})">
+                        <div class="bg-gray-200 h-24 sm:h-32 w-full flex items-center justify-center text-4xl sm:text-6xl mb-3 border border-gray-400 shadow-inner">${s.img}</div>
+                        <h4 class="font-typewriter font-bold text-sm sm:text-lg border-b border-gray-300 pb-1 truncate">${s.name}</h4>
+                        <p class="text-[10px] sm:text-xs font-mono text-gray-700 mt-2 leading-relaxed">MO: ${s.desc}</p>
+                    </div>
+                `;
+                btnArea.innerHTML += `<button onclick="makeArrest(${idx})" class="bg-detective-panel border border-detective-gold text-detective-gold font-mono py-2 px-2 sm:px-4 text-xs sm:text-sm rounded hover:bg-detective-gold hover:text-black transition">Arrest ${s.name.split(' ')[0]}</button>`;
+            });
+        }
+
+        function toggleSuspectBoard() {
+            const modal = document.getElementById('suspect-modal');
+            document.getElementById('clue-notification').classList.add('hidden');
+            if (modal.classList.contains('hidden')) { modal.classList.remove('hidden'); modal.style.display = 'flex'; } 
+            else { modal.classList.add('hidden'); modal.style.display = 'none'; }
+        }
+
+        function makeArrest(suspectIdx) {
+            document.getElementById('suspect-modal').classList.add('hidden');
+            document.getElementById('suspect-modal').style.display = 'none';
+            
+            const screen = document.getElementById('conclusion-screen');
+            const box = document.getElementById('conclusion-box');
+            screen.classList.remove('hidden'); screen.style.display = 'flex';
+
+            const modeDisplay = state.mode.toUpperCase();
+
+            if(suspectIdx === state.mystery.culpritIndex) {
+                const culprit = state.mystery.suspects[suspectIdx];
+                box.className = "bg-detective-panel border-4 border-detective-green p-8 sm:p-12 rounded-xl shadow-[0_0_50px_rgba(22,101,52,0.5)] max-w-2xl w-full text-center my-auto";
+                document.getElementById('conclusion-icon').innerText = "⚖️";
+                document.getElementById('conclusion-title').className = "text-3xl sm:text-4xl font-typewriter mb-4 text-detective-green";
+                document.getElementById('conclusion-title').innerText = "CASE CLOSED: VICTORY";
+                document.getElementById('conclusion-desc').innerHTML = `
+                    Agent <strong>${state.playerName}</strong> correctly identified the culprit as ${culprit.name}.<br><br>
+                    By maintaining strict structural logic ${state.mode==='hard' ? 'and achieving top AP Marks' : 'against sophisticated fallacies'}, you have secured the academic vault. Excellent work.<br><br>
+                    <span class="inline-block bg-detective-green text-white px-3 py-1 rounded font-mono text-xs tracking-widest mt-2 border border-green-400">SUCCESS IN ${modeDisplay} MODE</span>
+                `;
+            } else {
+                box.className = "bg-detective-panel border-4 border-detective-red p-8 sm:p-12 rounded-xl shadow-[0_0_50px_rgba(153,27,27,0.5)] max-w-2xl w-full text-center my-auto";
+                document.getElementById('conclusion-icon').innerText = "❌";
+                document.getElementById('conclusion-title').className = "text-3xl sm:text-4xl font-typewriter mb-4 text-detective-red";
+                document.getElementById('conclusion-title').innerText = "CASE FAILED: WRONG SUSPECT";
+                document.getElementById('conclusion-desc').innerHTML = `
+                    Agent <strong>${state.playerName}</strong> arrested the wrong individual.<br><br>
+                    You failed to properly align the forensics with the suspect's Modus Operandi. The true mastermind has escaped.<br><br>
+                    <span class="inline-block bg-detective-red text-white px-3 py-1 rounded font-mono text-xs tracking-widest mt-2 border border-red-400">FAILED IN ${modeDisplay} MODE</span>
+                `;
+            }
+        }
+
+        function resetToSetup() {
+            // Reset state logically
+            state = {
+                playerName: state.playerName, mode: state.mode, 
+                mystery: null, cluesFound: 0, currentCase: null, usedCases: state.usedCases,
+                easyTab: 'claim', easySelections: { claim: null, evidence: null, commentary: null },
+                easyShuffled: { claim: [], evidence: [], commentary: [] }
+            };
+            
+            // Clean UI specifics
+            document.getElementById('clue-list-ui').innerHTML = '<li class="text-gray-600 font-typewriter text-sm italic">Solve cases to uncover clues...</li>';
+            document.getElementById('clues-count').innerText = "0/3";
+            document.getElementById('final-deduction-area').classList.add('hidden');
+            document.getElementById('final-deduction-area').classList.remove('flex');
+            document.getElementById('proceed-btn').innerText = "LOG CLUE & CONTINUE";
+            document.getElementById('proceed-btn').classList.replace('bg-detective-red', 'bg-black');
+            
+            // Re-render visual mode buttons so it highlights correctly
+            setMode(state.mode);
+
+            // Clean conclusion screen and properly show setup screen again
+            document.getElementById('conclusion-screen').classList.add('hidden');
+            document.getElementById('conclusion-screen').style.display = 'none';
+            
+            // Force hide suspect board just in case
+            document.getElementById('suspect-modal').classList.add('hidden');
+            document.getElementById('suspect-modal').style.display = 'none';
+
+            // Show setup UI safely
+            document.getElementById('setup-screen').classList.remove('hidden');
+            document.getElementById('setup-screen').style.display = 'flex';
+        }
+    </script>
+</body>
+</html>
