@@ -3,87 +3,193 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My App Hub</title>
+<title>The AP Archive</title>
 <style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #050814;
+    --card: #0f172a;
+    --card-hover: #1e293b;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    
+    --gold: #d4af37;
+    --blue: #38bdf8;
+    --orange: #fb923c;
+  }
+
   body {
-    background-color: #07091a;
-    color: #e4e6f2;
+    background-color: var(--bg);
+    color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     display: flex;
     flex-direction: column;
     align-items: center;
     padding: 60px 20px;
-    margin: 0;
+    min-height: 100vh;
+    background-image: radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.05) 0%, transparent 60%);
   }
+
+  header {
+    text-align: center;
+    margin-bottom: 50px;
+  }
+
+  .icon-main {
+    font-size: 40px;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.5));
+  }
+
   h1 { 
-    color: #c9a84c; 
-    letter-spacing: 2px; 
+    color: var(--text); 
+    letter-spacing: 3px; 
     text-transform: uppercase; 
+    font-size: 32px;
     margin-bottom: 10px;
   }
-  p { 
-    color: #6b7492; 
-    margin-bottom: 40px; 
-    text-align: center; 
+
+  h1 span { color: var(--gold); }
+
+  p.subtitle { 
+    color: var(--muted); 
     max-width: 500px; 
-    line-height: 1.5;
+    line-height: 1.6;
+    margin: 0 auto;
   }
+
   .app-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    width: 100%;
+    max-width: 1000px;
+  }
+
+  .app-card {
+    background: var(--card);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 30px 24px;
+    text-decoration: none;
+    color: var(--text);
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    width: 100%;
-    max-width: 450px;
+    align-items: center;
   }
-  .app-card {
-    background: #131828;
-    border: 1px solid rgba(201,168,76,0.35);
-    border-radius: 12px;
-    padding: 24px;
-    text-decoration: none;
-    color: #e4e6f2;
-    text-align: center;
+
+  .app-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--muted);
+    transition: background 0.3s ease;
+  }
+
+  .app-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    transition: transform 0.3s ease;
+  }
+
+  .app-title {
+    font-size: 22px;
     font-weight: bold;
-    font-size: 18px;
-    transition: all 0.2s;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    margin-bottom: 10px;
+    letter-spacing: 1px;
   }
+
+  .app-desc {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 20px;
+    flex-grow: 1;
+  }
+
+  .app-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: rgba(255,255,255,0.05);
+    color: var(--muted);
+    transition: all 0.3s ease;
+  }
+
+  /* Hover Effects */
   .app-card:hover {
-    background: #1a2040;
-    border-color: #c9a84c;
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    background: var(--card-hover);
+    transform: translateY(-5px);
   }
-  .app-card span {
-    display: block;
-    font-size: 13px;
-    color: #6b7492;
-    margin-top: 8px;
-    font-weight: normal;
+
+  .app-card:hover .app-icon {
+    transform: scale(1.1);
+  }
+
+  /* Source Court (Gold) */
+  .app-card.court:hover { border-color: var(--gold); box-shadow: 0 10px 40px rgba(212, 175, 55, 0.2); }
+  .app-card.court:hover::before { background: var(--gold); }
+  .app-card.court:hover .app-title { color: var(--gold); }
+  .app-card.court:hover .app-badge { background: rgba(212, 175, 55, 0.15); color: var(--gold); }
+
+  /* Rhetoric Radar (Blue) */
+  .app-card.radar:hover { border-color: var(--blue); box-shadow: 0 10px 40px rgba(56, 189, 248, 0.2); }
+  .app-card.radar:hover::before { background: var(--blue); }
+  .app-card.radar:hover .app-title { color: var(--blue); }
+  .app-card.radar:hover .app-badge { background: rgba(56, 189, 248, 0.15); color: var(--blue); }
+
+  /* Rhetorical Roast (Orange) */
+  .app-card.roast:hover { border-color: var(--orange); box-shadow: 0 10px 40px rgba(251, 146, 60, 0.2); }
+  .app-card.roast:hover::before { background: var(--orange); }
+  .app-card.roast:hover .app-title { color: var(--orange); }
+  .app-card.roast:hover .app-badge { background: rgba(251, 146, 60, 0.15); color: var(--orange); }
+
+  @media (max-width: 600px) {
+    .app-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 
-  <h1>Project Directory</h1>
-  <p>Welcome to the main hub. Select an application below to launch it.</p>
+  <header>
+    <div class="icon-main">🏛️</div>
+    <h1>The AP <span>Archive</span></h1>
+    <p class="subtitle">Welcome to the central command hub. Select an application below to launch your tactical analysis training.</p>
+  </header>
 
   <div class="app-grid">
     
-    <a href="SourceCourt.html" class="app-card">
-      ⚖️ Source Court
-      <span>AP Research Edition</span>
+    <a href="SourceCourt.html" class="app-card court">
+      <div class="app-icon">⚖️</div>
+      <div class="app-title">Source Court</div>
+      <div class="app-desc">Step up to the bench. Evaluate the credibility, bias, and rigor of academic sources for your research.</div>
+      <div class="app-badge">AP Research Edition</div>
     </a>
 
-    <a href="RhetoricRadar.html" class="app-card">
-      📁 Rhetoric Radar
-      <span>Practice your ethos, logos, pathos, and spotting of rhetorical devices</span>
+    <a href="RhetoricRadar.html" class="app-card radar">
+      <div class="app-icon">📡</div>
+      <div class="app-title">Rhetoric Radar</div>
+      <div class="app-desc">Intercept communications and scan for rhetorical devices. Hunt down ethos, logos, and pathos.</div>
+      <div class="app-badge">AP Lang Edition</div>
     </a>
     
-<a href="RhetoricalRoast.html" class="app-card">
-      Rhetorical Roast
-      <span>This is a game to help develop rhetorical device skills</span>
+    <a href="RhetoricalRoast.html" class="app-card roast">
+      <div class="app-icon">🔥</div>
+      <div class="app-title">Rhetorical Roast</div>
+      <div class="app-desc">Put your skills to the test in a high-stakes rhetorical battle. Construct and deconstruct arguments.</div>
+      <div class="app-badge">Skill Development</div>
     </a>
+
   </div>
 
 </body>
