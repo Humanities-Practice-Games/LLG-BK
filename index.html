@@ -161,6 +161,12 @@
   .app-card.detective:hover .app-title { color: var(--yellow); }
   .app-card.detective:hover .app-badge { background: rgba(250, 204, 21, 0.15); color: var(--yellow); }
 
+/* Interactive Synthesis Coach (Yellow) */
+  .app-card.coach:hover { border-color: var(--yellow); box-shadow: 0 10px 40px rgba(250, 204, 21, 0.2); }
+  .app-card.coach:hover::before { background: var(--yellow); }
+  .app-card.coach:hover .app-title { color: var(--yellow); }
+  .app-card.coach:hover .app-badge { background: rgba(250, 204, 21, 0.15); color: var(--yellow); }
+ 
   @media (max-width: 600px) {
     .app-grid { grid-template-columns: 1fr; }
   }
@@ -197,11 +203,18 @@
       <div class="app-badge">Skill Development</div>
     </a>
 
- <a href="LineOfReasoningDetective.html" class="app-card Detective">
+ <a href="LineOfReasoningDetective.html" class="app-card detective">
       <div class="app-icon">🕵️</div>
       <div class="app-title">Line of Reasoning Detective</div>
       <div class="app-desc">Solve mysteries through development of theses, claims, pieces of evidence, and commentary</div>
       <div class="app-badge">Line of Reasoning Development</div>
+    </a>
+
+    <a href="InteractiveSynthesisCoach.html" class="app-card coach">
+      <div class="app-icon">🕵️</div>
+      <div class="app-title">Interactive Synthesis Coach</div>
+      <div class="app-desc">Learn how to achieve that sophistication point</div>
+      <div class="app-badge">Sophistication</div>
     </a>
    
   </div>
