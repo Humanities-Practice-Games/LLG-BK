@@ -94,14 +94,23 @@ button {
   min-height: calc(100vh - 32px);
 }
 
+/* 1. Only blur the outer containers */
 .rail,
 .stage,
-.panel,
 .overlay-card {
   border: 1px solid var(--line);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.03));
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px); /* Adds Safari/Mac support */
   box-shadow: var(--shadow);
+}
+
+/* 2. Remove the heavy blur from the inner panels */
+.panel {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.08); /* Flat transparency, NO GPU blur */
+  box-shadow: var(--shadow);
+}
 }
 
 .rail {
