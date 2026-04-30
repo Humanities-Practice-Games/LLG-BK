@@ -1,25 +1,278 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Source Court: AP Research Edition</title>
-    <meta
-      name="description"
-      content="A courtroom source-evaluation game for AP Research and source review practice."
-    />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <div id="app" class="app-shell">
-      <noscript>
-        <div class="noscript">
-          Source Court needs JavaScript enabled. The bench is unimpressed.
-        </div>
-      </noscript>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Source Court — AP Research Edition</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  /* Extra UX Styles for the Home Screen Steps */
+  .step-container {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: left;
+  }
+  .step-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .step-num {
+    background: var(--gold);
+    color: #000;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 1rem;
+    font-weight: 900;
+  }
+  #error-message {
+    display: none;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid var(--dismiss);
+    color: var(--dismiss);
+    padding: 15px;
+    border-radius: var(--radius-md);
+    margin-bottom: 20px;
+    font-weight: bold;
+    text-align: center;
+    animation: shake 0.4s ease;
+  }
+</style>
+</head>
+<body>
+
+<div id="aiLoadingModal" class="modal-overlay">
+  <div class="modal-content" style="text-align: center; border-color: var(--admit); background: var(--bg);">
+    <div class="ai-spinner" style="border-top-color: var(--admit); border-color: var(--admit-dim);"></div>
+    <div class="ai-loader" style="color: var(--admit);">AI Director fabricating next docket...</div>
+  </div>
+</div>
+
+<div id="benchBookModal" class="modal-overlay">
+  <div class="modal-content">
+    <div class="modal-title">Instructions: The Bench Book</div>
+    <p>A judge must evaluate evidence systematically. Use these 4 criteria to determine if a source is admissible for academic research:</p>
+    
+    <div class="def-block">
+      <div class="def-title">1. Authority (Credentials)</div>
+      <div class="def-desc">Is the author qualified to write on this topic? Look for degrees (Ph.D., M.D.), institutional affiliations, or extensive professional experience.</div>
     </div>
-    <div id="live-region" class="sr-only" aria-live="polite" aria-atomic="true"></div>
-    <script src="data.js"></script>
-    <script src="app.js"></script>
-  </body>
+    <div class="def-block">
+      <div class="def-title">2. Currency (Date)</div>
+      <div class="def-desc">Is the information up-to-date? For fast-moving fields like science or technology, sources should ideally be published within the last 5-7 years.</div>
+    </div>
+    <div class="def-block">
+      <div class="def-title">3. Objectivity (Bias & Agenda)</div>
+      <div class="def-desc">Why was this written? To inform, persuade, or sell? Look for strong emotional language or financial conflicts of interest.</div>
+    </div>
+    <div class="def-block">
+      <div class="def-title">4. Rigor (Peer-Review)</div>
+      <div class="def-desc">Has the information been vetted? The gold standard is <strong>Peer-Reviewed Academic Journals</strong> or major government reports.</div>
+    </div>
+
+    <button class="button primary" style="width: 100%; margin-top: 15px;" onclick="document.getElementById('benchBookModal').classList.remove('active')">Close Instructions</button>
+  </div>
+</div>
+
+<div id="home" class="screen active" style="align-content: center; max-width: 700px; margin: 0 auto; padding: 40px 20px;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <span style="font-size: 4rem; display: block; margin-bottom: 10px; filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.5));">⚖️</span>
+    <div style="font-size: 3rem; font-weight: 900; letter-spacing: 0.1em; color: var(--gold); text-transform: uppercase; font-family: var(--display);">Source Court</div>
+    <div style="color: var(--muted); font-size: 1rem; margin-top: 5px; letter-spacing: 0.2em; text-transform: uppercase;">Survival Mode</div>
+  </div>
+  
+  <div class="panel">
+    <div id="error-message"></div>
+
+    <div class="step-container">
+      <div class="step-title"><span class="step-num">1</span> Enter Your Name</div>
+      <input type="text" id="inp-name" placeholder="Judge's Last Name (e.g., Smith)" autocomplete="off">
+    </div>
+
+    <div class="step-container">
+      <div class="step-title"><span class="step-num">2</span> Select Your Playstyle</div>
+      <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 15px; line-height: 1.4;">Your persona grants you double points for correctly evaluating specific criteria during the game.</p>
+      
+      <div class="persona-grid">
+        <div class="persona-card p-auth" onclick="selectPersona('authority')">
+          <h3>The Detective</h3>
+          <span style="color: var(--gold); font-size: 0.8rem; font-weight: bold;">2x Points: Authority</span>
+          <span style="color: var(--muted); font-size: 0.75rem; margin-top: 5px;">Masters at verifying author credentials.</span>
+        </div>
+        <div class="persona-card p-curr" onclick="selectPersona('currency')">
+          <h3>The Archivist</h3>
+          <span style="color: var(--gold); font-size: 0.8rem; font-weight: bold;">2x Points: Currency</span>
+          <span style="color: var(--muted); font-size: 0.75rem; margin-top: 5px;">Masters at evaluating publication dates.</span>
+        </div>
+        <div class="persona-card p-bias" onclick="selectPersona('bias')">
+          <h3>The Skeptic</h3>
+          <span style="color: var(--gold); font-size: 0.8rem; font-weight: bold;">2x Points: Bias</span>
+          <span style="color: var(--muted); font-size: 0.75rem; margin-top: 5px;">Masters at sniffing out hidden agendas.</span>
+        </div>
+        <div class="persona-card p-peer" onclick="selectPersona('peer')">
+          <h3>The Scholar</h3>
+          <span style="color: var(--gold); font-size: 0.8rem; font-weight: bold;">2x Points: Rigor</span>
+          <span style="color: var(--muted); font-size: 0.75rem; margin-top: 5px;">Masters at verifying peer-reviewed research.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-container" style="margin-bottom: 0;">
+      <div class="step-title"><span class="step-num">3</span> Start the Docket</div>
+      
+      <div class="single-button-row">
+        <button class="button primary" onclick="startGame(false)">⚖️ Play Standard Campaign (Tutorial)</button>
+        <button class="button secondary" onclick="document.getElementById('benchBookModal').classList.add('active')">📖 Read Instructions (How to Play)</button>
+      </div>
+
+      <div style="display: flex; align-items: center; text-align: center; margin: 25px 0; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: bold;">
+        <span style="flex: 1; border-bottom: 1px solid var(--line-strong); margin-right: 15px;"></span>
+        OR CUSTOM PRACTICE
+        <span style="flex: 1; border-bottom: 1px solid var(--line-strong); margin-left: 15px;"></span>
+      </div>
+      
+      <div style="display: grid; gap: 10px;">
+        <input type="text" id="inp-topic" placeholder="Enter topic: e.g., Fast food, Social media" style="border-color: rgba(16, 185, 129, 0.4);">
+        <button class="button" style="background: linear-gradient(135deg, #4ade80, #0d9488); color: #000;" onclick="startGame(true)">✨ Generate Endless AI Docket</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="court" class="screen" style="display: none; max-width: 900px; margin: 0 auto; padding-top: 20px;">
+  <div class="topbar">
+    <div style="text-align: center;">
+      <div class="eyebrow" style="color: var(--muted);">Strikes</div>
+      <div style="font-size: 1.2rem; display: flex; gap: 5px;" id="hudStrikes">
+        <span class="strike-chip" id="s1"></span>
+        <span class="strike-chip" id="s2"></span>
+        <span class="strike-chip" id="s3"></span>
+      </div>
+    </div>
+    <div style="text-align: center;">
+      <div class="eyebrow" style="color: var(--muted);">Streak</div>
+      <div style="font-size: 1.2rem; font-weight: bold; font-family: monospace;" id="hudStreak">0 🔥</div>
+    </div>
+    <div style="text-align: center;">
+      <div class="eyebrow" style="color: var(--gold);">Score</div>
+      <div style="font-size: 1.2rem; font-weight: bold; font-family: monospace; color: var(--gold);" id="hudRep">0</div>
+    </div>
+  </div>
+
+  <div class="case-card">
+    <h2 style="font-family: var(--display); font-size: 1.6rem; margin-bottom: 15px;" id="cfTitle"></h2>
+    <div class="metadata-grid">
+      <span class="meta-key">Author</span><span class="meta-val" id="cfAuthor"></span>
+      <span class="meta-key">Publication</span><span class="meta-val" id="cfPub"></span>
+      <span class="meta-key">Date</span><span class="meta-val" id="cfDate"></span>
+      <span class="meta-key">Type</span><span class="meta-val" id="cfType"></span>
+    </div>
+    <div class="excerpt-box" id="cfExcerpt"></div>
+  </div>
+
+  <div class="panel">
+    <h3 class="panel-title" style="color: var(--gold); text-transform: uppercase; letter-spacing: 0.1em; font-size: 1rem; border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 20px;">Evidence Gathering (Optional)</h3>
+    
+    <div style="display: grid; gap: 20px;">
+      <div>
+        <div style="font-weight: bold; margin-bottom: 10px;"><span style="color: var(--gold);">1. AUTHORITY:</span> Does the author possess verifiable credentials in this field?</div>
+        <div style="display: flex; gap: 10px;">
+          <button class="button secondary yes" id="btn-q-auth-y" style="flex: 1;" onclick="answerQ('authority', true)">PASSES</button>
+          <button class="button secondary no" id="btn-q-auth-n" style="flex: 1;" onclick="answerQ('authority', false)">FAILS</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-weight: bold; margin-bottom: 10px;"><span style="color: var(--gold);">2. CURRENCY:</span> Is this source sufficiently recent (usually 5-7 years)?</div>
+        <div style="display: flex; gap: 10px;">
+          <button class="button secondary yes" id="btn-q-curr-y" style="flex: 1;" onclick="answerQ('currency', true)">PASSES</button>
+          <button class="button secondary no" id="btn-q-curr-n" style="flex: 1;" onclick="answerQ('currency', false)">FAILS</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-weight: bold; margin-bottom: 10px;"><span style="color: var(--gold);">3. RIGOR:</span> Was this published in a peer-reviewed academic journal?</div>
+        <div style="display: flex; gap: 10px;">
+          <button class="button secondary yes" id="btn-q-peer-y" style="flex: 1;" onclick="answerQ('peer', true)">PASSES</button>
+          <button class="button secondary no" id="btn-q-peer-n" style="flex: 1;" onclick="answerQ('peer', false)">FAILS</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-weight: bold; margin-bottom: 10px;"><span style="color: var(--gold);">4. OBJECTIVITY:</span> Is this source objective and free from extreme bias?</div>
+        <div style="display: flex; gap: 10px;">
+          <button class="button secondary yes" id="btn-q-bias-y" style="flex: 1;" onclick="answerQ('bias', true)">PASSES</button>
+          <button class="button secondary no" id="btn-q-bias-n" style="flex: 1;" onclick="answerQ('bias', false)">FAILS</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ruling-grid">
+    <button class="ruling-button" data-verdict="true" onclick="submitRuling(true)">
+      <strong>Rule Admissible</strong>
+      <span style="font-size: 0.85rem; opacity: 0.8;">Source is credible & academic</span>
+    </button>
+    <button class="ruling-button" data-verdict="false" onclick="submitRuling(false)">
+      <strong>Rule Dismissed</strong>
+      <span style="font-size: 0.85rem; opacity: 0.8;">Source is flawed or biased</span>
+    </button>
+  </div>
+  <div style="height: 100px;"></div>
+</div>
+
+<div id="verdict" class="screen" style="display: none; max-width: 700px; margin: 0 auto; padding: 40px 20px;">
+  <div style="text-align: center; margin-bottom: 40px;">
+    <div class="stamp" id="verdictStamp"></div>
+    <div id="verdictPromo" style="display: inline-block; padding: 8px 16px; border-radius: 8px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 15px;"></div>
+    <div style="font-size: 1.5rem; font-weight: bold; color: var(--gold); font-family: monospace; margin-top: 15px;" id="verdictRoundScore">+0 SCORE</div>
+  </div>
+
+  <div class="panel" style="margin-bottom: 30px;">
+    <h3 style="color: var(--gold); text-transform: uppercase; font-size: 1rem; border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 15px;">Chief Justice Debrief</h3>
+    <div style="font-size: 1.1rem; line-height: 1.6; margin-bottom: 25px;" id="verdictExp"></div>
+    
+    <div id="ceResultsBox" style="display: grid; gap: 10px; margin-bottom: 25px;"></div>
+
+    <div id="aiDebriefZone" style="display: none;">
+      <button class="button" id="btnAskAI" style="width: 100%; background: rgba(74, 222, 128, 0.1); border: 1px solid var(--admit); color: var(--admit);" onclick="askAIForDebrief()">✨ Ask AI Director for detailed breakdown</button>
+      <div id="aiExpBox" style="margin-top: 15px; background: rgba(0,0,0,0.5); border-left: 3px solid var(--admit); padding: 15px; line-height: 1.5; display: none;"></div>
+    </div>
+  </div>
+
+  <button class="button primary" style="width: 100%; padding: 20px; font-size: 1.2rem;" onclick="nextCase()">Bring in the Next Source</button>
+</div>
+
+<div id="end" class="screen" style="display: none; align-content: center; max-width: 500px; margin: 0 auto; text-align: center; padding: 20px;">
+  <div class="panel" id="endCard" style="padding: 50px 30px;">
+    <div style="font-size: 3rem; font-weight: 900; text-transform: uppercase; font-family: var(--display); margin-bottom: 10px;" id="endTitle">MISTRIAL</div>
+    <div style="color: var(--muted); font-size: 1.2rem; margin-bottom: 30px;" id="endRank">You Have Been Disbarred (3 Strikes)</div>
+    
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px;">
+      <div style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 8px; border: 1px solid var(--line);">
+        <div style="font-size: 2.5rem; font-weight: bold; color: var(--gold); font-family: monospace;" id="endRep">0</div>
+        <div style="font-size: 0.8rem; text-transform: uppercase; font-weight: bold; letter-spacing: 0.1em; color: var(--muted);">Total Score</div>
+      </div>
+      <div style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 8px; border: 1px solid var(--line);">
+        <div style="font-size: 2.5rem; font-weight: bold; color: #fbbf24; font-family: monospace;" id="endStreak">0</div>
+        <div style="font-size: 0.8rem; text-transform: uppercase; font-weight: bold; letter-spacing: 0.1em; color: var(--muted);">Best Streak</div>
+      </div>
+    </div>
+    
+    <button class="button primary" style="width: 100%;" onclick="location.reload()">Return to Main Menu</button>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
 </html>
