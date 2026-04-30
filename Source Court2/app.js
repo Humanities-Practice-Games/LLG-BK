@@ -150,7 +150,7 @@
     `;
   }
 
-  function renderHome() {
+ function renderHome() {
     const rank = getCurrentRank();
     const progress = getRankProgress();
     const currentDocket = getNextCampaignDocket();
@@ -158,78 +158,77 @@
     return `
       <div class="screen">
         ${renderTopbar()}
-        <div class="hero-grid">
+        
+        <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
           
-          <section class="hero-main">
+          <div style="text-align: center; margin-bottom: 40px; margin-top: 20px;">
+            <span style="font-size: 4rem; display: block; margin-bottom: 10px; filter: drop-shadow(0 0 15px rgba(212, 175, 55, 0.5));">⚖️</span>
+            <h1 style="font-size: 3rem; font-weight: 900; letter-spacing: 0.1em; color: var(--gold); text-transform: uppercase; font-family: var(--display); margin: 0;">Source Court</h1>
+            <p class="muted" style="margin-top: 10px; font-size: 1.1rem;">Review metadata, weigh criteria, and rule if a source belongs in academic research.</p>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 15px 25px; margin-bottom: 30px;">
             <div>
-              <div class="eyebrow">Judicial Career</div>
-              <h1 class="screen-title" style="font-size: 3rem; margin-bottom: 10px;">Rule Better Sources</h1>
-              <p class="muted" style="margin-bottom: 30px;">
-                Review metadata, weigh authority, currency, rigor, and objectivity, and decide whether a source belongs in serious academic research.
-              </p>
+              <div class="eyebrow">Current Rank</div>
+              <div style="font-size: 1.2rem; font-weight: bold; color: var(--gold);">${rank.title}</div>
+            </div>
+            <div style="flex: 1; margin: 0 30px;">
+              <div class="meter" style="margin: 0;"><div class="meter-fill" style="width:${progress.percent}%"></div></div>
+              <div class="muted small" style="margin-top: 5px; text-align: center;">${progress.current} / ${progress.needed} XP to ${progress.nextTitle}</div>
+            </div>
+            <div style="text-align: right;">
+              <div class="eyebrow">Best Streak</div>
+              <div style="font-size: 1.2rem; font-weight: bold; color: #fbbf24;">${state.profile.bestStreak} 🔥</div>
+            </div>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 25px; margin-bottom: 20px;">
+            <div style="font-size: 1.2rem; font-weight: 800; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+              <span style="background: var(--gold); color: #000; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 1rem; font-weight: 900;">1</span> Enter Your Name
+            </div>
+            <input id="judge-name" data-field="name" type="text" value="${escapeHtml(state.profile.name)}" placeholder="Judge's Last Name (e.g., Smith)" style="width: 100%; padding: 15px; border-radius: var(--radius-sm); border: 1px solid var(--line-strong); background: var(--bg); color: white; font-size: 1.1rem;" />
+          </div>
+
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 25px; margin-bottom: 20px;">
+            <div style="font-size: 1.2rem; font-weight: 800; margin-bottom: 5px; display: flex; align-items: center; gap: 10px;">
+              <span style="background: var(--gold); color: #000; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 1rem; font-weight: 900;">2</span> Select Playstyle
+            </div>
+            <p class="muted small" style="margin-bottom: 20px;">Your persona grants you double points for correctly evaluating specific criteria.</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+              ${data.personas.map(renderPersonaCard).join('')}
+            </div>
+          </div>
+
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 25px; margin-bottom: 40px;">
+            <div style="font-size: 1.2rem; font-weight: 800; margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+              <span style="background: var(--gold); color: #000; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 1rem; font-weight: 900;">3</span> Start the Docket
             </div>
             
-            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 20px; margin-bottom: 20px;">
-              <div style="font-size: 1.1rem; font-weight: 800; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-                <span style="background: var(--gold); color: #000; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 1rem; font-weight: 900;">1</span> Enter Your Name
-              </div>
-              <input id="judge-name" data-field="name" type="text" value="${escapeHtml(state.profile.name)}" placeholder="Judge's Last Name (e.g., Smith)" style="width: 100%; max-width: 400px; padding: 12px; border-radius: 4px; border: 1px solid var(--line-strong); background: var(--bg); color: white;" />
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 30px;">
+              <button class="button primary" style="padding: 20px; font-size: 1.1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px solid transparent;" data-action="start-campaign">
+                <strong>⚖️ Continue Campaign</strong>
+                <span style="font-size: 0.8rem; opacity: 0.8; font-weight: normal; text-transform: none; letter-spacing: 0;">${currentDocket.chapter}: ${currentDocket.name}</span>
+              </button>
+              <button class="button secondary" style="padding: 20px; font-size: 1.1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;" data-action="start-survival">
+                <strong>🔥 Appeals Survival</strong>
+                <span style="font-size: 0.8rem; opacity: 0.8; font-weight: normal; text-transform: none; letter-spacing: 0;">Random cases, 3 strikes</span>
+              </button>
             </div>
 
-            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 20px;">
-              <div style="font-size: 1.1rem; font-weight: 800; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-                <span style="background: var(--gold); color: #000; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 1rem; font-weight: 900;">3</span> Start the Docket
-              </div>
-              <div class="tag-row" style="margin-bottom: 12px;">
-                <span class="tag">${currentDocket.chapter}</span>
-                <span class="tag">${currentDocket.name}</span>
-                <span class="tag">${currentDocket.promotion}</span>
-              </div>
-              <div class="button-row" style="margin-top: 15px;">
-                <button class="button primary" data-action="start-campaign">⚖️ Continue Campaign</button>
-                <button class="button secondary" data-action="start-survival">Start Survival Docket</button>
-              </div>
-            </div>
-          </section>
-          
-          <aside class="hero-side">
-            
-            <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--line); border-radius: var(--radius-md); padding: 20px; margin-bottom: 20px;">
-              <div style="font-size: 1.1rem; font-weight: 800; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-                <span style="background: var(--gold); color: #000; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 1rem; font-weight: 900;">2</span> Select Playstyle
-              </div>
-              <p class="muted small" style="margin-bottom: 15px;">Your persona grants you double points for correctly evaluating specific criteria.</p>
-              
-              <div class="persona-grid" style="display: flex; flex-direction: column; gap: 10px;">
-                ${data.personas.map(renderPersonaCard).join('')}
-              </div>
+            <div style="display: flex; align-items: center; text-align: center; margin: 30px 0; color: var(--muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: bold;">
+              <span style="flex: 1; border-bottom: 1px solid var(--line-strong); margin-right: 15px;"></span>
+              OR ENDLESS AI PRACTICE
+              <span style="flex: 1; border-bottom: 1px solid var(--line-strong); margin-left: 15px;"></span>
             </div>
 
-            <div class="career-banner">
-              <div class="eyebrow">Long-Term Progress</div>
-              <div class="panel-title">${rank.title}</div>
-              <div class="meter"><div class="meter-fill" style="width:${progress.percent}%"></div></div>
-              <div class="muted small">${progress.current} / ${progress.needed} XP to ${progress.nextTitle}</div>
+            <div style="display: grid; gap: 10px; margin-bottom: 15px;">
+              <input id="topic-draft" data-field="topicDraft" type="text" value="${escapeHtml(state.profile.topicDraft)}" placeholder="Enter custom topic: e.g., Fast food, Social media..." style="width: 100%; padding: 15px; border-radius: var(--radius-sm); border: 1px solid rgba(16, 185, 129, 0.4); background: rgba(16,185,129,0.05); color: white; font-size: 1rem;" />
+              <input id="api-key" data-field="apiKey" type="password" value="${escapeHtml(state.profile.apiKey)}" placeholder="Gemini API Key (Required for AI Practice)" style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--line-strong); background: var(--bg); color: white;" />
             </div>
-          </aside>
-        </div>
+            <button class="button" style="width: 100%; padding: 15px; font-size: 1.1rem; background: linear-gradient(135deg, #4ade80, #0d9488); color: #000; border: none;" data-action="start-custom">✨ Generate Custom AI Docket</button>
 
-        <div class="home-grid" style="margin-top: 20px;">
-          <section class="panel">
-            <div class="eyebrow">Endless Mode</div>
-            <div class="panel-title">Custom Topic Practice</div>
-            <div class="field-stack">
-              <label>
-                Topic
-                <input id="topic-draft" data-field="topicDraft" type="text" value="${escapeHtml(state.profile.topicDraft)}" placeholder="Social media, AI tutors, climate migration..." />
-              </label>
-              <label>
-                Gemini API Key (Optional)
-                <input id="api-key" data-field="apiKey" type="password" value="${escapeHtml(state.profile.apiKey)}" placeholder="Paste only if you want live AI dockets" />
-              </label>
-            </div>
-            <button class="button secondary" style="margin-top: 15px;" data-action="start-custom">✨ Start Custom Practice</button>
-          </section>
+          </div>
         </div>
       </div>
     `;
