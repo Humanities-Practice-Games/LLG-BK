@@ -464,3 +464,34 @@ input:focus {
   .mode-grid, .persona-grid { grid-template-columns: 1fr; }
   .ruling-grid { grid-template-columns: 1fr; }
 }
+/* =====================================================================
+   ERROR NOTIFICATIONS
+   ===================================================================== */
+.toast {
+  position: fixed !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  background: rgba(239, 68, 68, 0.95) !important;
+  border: 2px solid #f87171 !important;
+  color: #fff !important;
+  padding: 20px 30px !important;
+  border-radius: var(--radius-md) !important;
+  font-size: 1.2rem !important;
+  font-weight: bold !important;
+  text-align: center !important;
+  z-index: 9999 !important;
+  box-shadow: 0 10px 40px rgba(239, 68, 68, 0.5) !important;
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), shake 0.4s ease 0.3s;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translate(-50%, -40%) scale(0.8); }
+  to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes shake {
+  0%, 100% { transform: translate(-50%, -50%); }
+  25% { transform: translate(calc(-50% - 10px), -50%); }
+  50% { transform: translate(calc(-50% + 10px), -50%); }
+  75% { transform: translate(calc(-50% - 10px), -50%); }
+}
