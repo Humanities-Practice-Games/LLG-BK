@@ -20,6 +20,7 @@
     --yellow: #facc15;
     --purple: #a855f7;
     --red: #ef4444; 
+   --silver: #cbd5e1;
   }
 
   body {
@@ -175,11 +176,11 @@
   .app-card.arena:hover .app-title { color: var(--red); }
   .app-card.arena:hover .app-badge { background: rgba(239, 68, 68, 0.15); color: var(--red); }
 
-   /* Argument Rumble (Silver) */
-  .app-card.arena:hover { border-color: var(--red); box-shadow: 0 10px 40px rgba(239, 68, 68, 0.2); }
-  .app-card.arena:hover::before { background: var(--red); }
-  .app-card.arena:hover .app-title { color: var(--red); }
-  .app-card.arena:hover .app-badge { background: rgba(239, 68, 68, 0.15); color: var(--red); }
+/* Argument Rumble (Silver) */
+  .app-card.rumble:hover { border-color: var(--silver); box-shadow: 0 10px 40px rgba(203, 213, 225, 0.2); }
+  .app-card.rumble:hover::before { background: var(--silver); }
+  .app-card.rumble:hover .app-title { color: var(--silver); }
+  .app-card.rumble:hover .app-badge { background: rgba(203, 213, 225, 0.15); color: var(--silver); }
   
   @media (max-width: 600px) {
     .app-grid { grid-template-columns: 1fr; }
